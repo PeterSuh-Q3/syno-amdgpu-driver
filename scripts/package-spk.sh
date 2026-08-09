@@ -15,7 +15,9 @@ mkdir -p "$ASSEMBLY/scripts" "$ASSEMBLY/conf"
 cp "$ROOT/spk/INFO" "$ASSEMBLY/INFO"
 cp "$ROOT/spk/scripts/"* "$ASSEMBLY/scripts/"
 cp "$ROOT/spk/conf/"* "$ASSEMBLY/conf/"
-tar -C "$STAGE/var/packages/$PACKAGE" -czf "$ASSEMBLY/package.tgz" target
+# DSM extracts package.tgz into the appstore directory linked as target/.
+# Archive the target contents, not the target directory itself.
+tar -C "$STAGE/var/packages/$PACKAGE/target" -czf "$ASSEMBLY/package.tgz" .
 CHECKSUM=$(md5sum "$ASSEMBLY/package.tgz" | awk '{print $1}')
 EXTRACT_SIZE=$(du -sk "$STAGE/var/packages/$PACKAGE" | awk '{print $1}')
 {
