@@ -23,7 +23,9 @@ for arg in "$@"; do
     --system-libs) printf '%s\n' '-lz -lm -ldl -lpthread' ;;
     --shared-mode) printf '%s\n' 'shared' ;;
     --has-rtti) printf '%s\n' 'NO' ;;
-    --components) printf '%s\n' 'all' ;;
+    # Meson checks requested component names against this list before using
+    # --libfiles.  They are all provided by the monolithic shared libLLVM.
+    --components) printf '%s\n' 'amdgpu bitreader bitwriter core engine executionengine instcombine ipo mcdisassembler mcjit native scalaropts transformutils coroutines lto' ;;
     --link-shared|--ignore-libllvm) ;;
     *) ;;
   esac
