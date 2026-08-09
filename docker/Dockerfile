@@ -11,7 +11,8 @@ USER 0
 
 # Native tools execute while building; target artifacts are always linked with
 # /opt/epyc7002/bin/x86_64-pc-linux-gnu-gcc by the build scripts.
-RUN apt-get update \
+RUN rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
       bison \
       build-essential \
