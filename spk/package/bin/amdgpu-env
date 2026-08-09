@@ -2,7 +2,11 @@
 set -eu
 ROOT=/var/packages/syno-amdgpu-runtime/target
 export LD_LIBRARY_PATH="$ROOT/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-export LIBVA_DRIVERS_PATH="$ROOT/lib"
+# FFmpeg 7/8 has a legacy DT_RPATH pointing to SynoCli's libva/libdrm.
+# Preload the ABI-matched runtime copies for every command deliberately run
+# through this opt-in wrapper; do not alter DSM's global linker paths.
+export LD_PRELOAD="$ROOT/lib/libdrm.so.2:$ROOT/lib/libva.so.2:$ROOT/lib/libva-drm.so.2${LD_PRELOAD:+:$LD_PRELOAD}"
+export LIBVA_DRIVERS_PATH="$ROOT/lib/dri"
 export LIBVA_DRIVER_NAME=radeonsi
 export VK_ICD_FILENAMES="$ROOT/etc/vulkan/icd.d/radeon_icd.x86_64.json"
 exec "$@"

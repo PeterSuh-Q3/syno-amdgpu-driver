@@ -1,0 +1,11 @@
+#!/bin/sh
+# AMD VA-API-enabled entry point for the installed SynologyCommunity FFmpeg.
+# Override FFMPEG_BIN only when intentionally selecting another FFmpeg build.
+set -eu
+ROOT=/var/packages/syno-amdgpu-runtime/target
+FFMPEG_BIN=${FFMPEG_BIN:-/var/packages/ffmpeg7/target/bin/ffmpeg}
+[ -x "$FFMPEG_BIN" ] || {
+  echo "amdgpu-ffmpeg: FFmpeg not found: $FFMPEG_BIN" >&2
+  exit 127
+}
+exec "$ROOT/bin/amdgpu-env" "$FFMPEG_BIN" "$@"
