@@ -21,6 +21,7 @@ RUN rm -f /etc/apt/apt.conf.d/docker-clean \
       curl \
       flex \
       git \
+      glslang-tools \
       meson \
       ninja-build \
       pkg-config \
