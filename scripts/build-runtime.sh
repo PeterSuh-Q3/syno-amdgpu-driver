@@ -37,6 +37,7 @@ export PKG_CONFIG_PATH="$STAGE$PREFIX/lib/pkgconfig"
 export PKG_CONFIG_LIBDIR="$STAGE$PREFIX/lib/pkgconfig"
 export PKG_CONFIG_SYSROOT_DIR="$STAGE"
 export LLVM_TARGET_ROOT="$ROOT/work/llvm-${PLATFORM}"
+LLVM_ABI_VERSION=${LLVM_ABI_VERSION:-18.1}
 
 # Clover's OpenCL compiler consumes libclc bitcode at build time and the
 # resulting runtime loads the same files by its pkg-config libexec path.
@@ -119,8 +120,11 @@ DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/mesa" install
 
 # Mesa and its drivers link to the target ABI's shared LLVM.  Ship it inside
 # the package rather than relying on an absent DSM system LLVM installation.
-install -Dm755 "$LLVM_TARGET_ROOT/lib/libLLVM.so.${LLVM_VERSION:-18.1}" "$STAGE$PREFIX/lib/libLLVM.so.${LLVM_VERSION:-18.1}"
-ln -sfn "libLLVM.so.${LLVM_VERSION:-18.1}" "$STAGE$PREFIX/lib/libLLVM.so"
+install -Dm755 "$LLVM_TARGET_ROOT/lib/libLLVM.so.${LLVM_ABI_VERSION}" "$STAGE$PREFIX/lib/libLLVM.so.${LLVM_ABI_VERSION}"
+ln -sfn "libLLVM.so.${LLVM_ABI_VERSION}" "$STAGE$PREFIX/lib/libLLVM.so"
+# Mesa's Clover OpenCL ICD links against Clang's monolithic C++ library.
+install -Dm755 "$LLVM_TARGET_ROOT/lib/libclang-cpp.so.${LLVM_ABI_VERSION}" "$STAGE$PREFIX/lib/libclang-cpp.so.${LLVM_ABI_VERSION}"
+ln -sfn "libclang-cpp.so.${LLVM_ABI_VERSION}" "$STAGE$PREFIX/lib/libclang-cpp.so"
 
 # This upstream feature opens the staged libdrm at runtime, avoiding a DSM
 # global-library change and allowing the SPK to carry its own ABI-matched copy.
