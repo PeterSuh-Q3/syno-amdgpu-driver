@@ -16,6 +16,14 @@ cp "$ROOT/spk/INFO" "$ASSEMBLY/INFO"
 cp "$ROOT/spk/scripts/"* "$ASSEMBLY/scripts/"
 cp "$ROOT/spk/conf/"* "$ASSEMBLY/conf/"
 tar -C "$STAGE/var/packages/$PACKAGE" -czf "$ASSEMBLY/package.tgz" target
+CHECKSUM=$(md5sum "$ASSEMBLY/package.tgz" | awk '{print $1}')
+EXTRACT_SIZE=$(du -sk "$STAGE/var/packages/$PACKAGE" | awk '{print $1}')
+{
+  printf 'extractsize="%s"\n' "$EXTRACT_SIZE"
+  printf 'create_time="%s"\n' "$(date +%Y%m%d-%H:%M:%S)"
+  printf 'checksum="%s"\n' "$CHECKSUM"
+} >> "$ASSEMBLY/INFO"
 mkdir -p "$OUT"
-tar -C "$ASSEMBLY" -czf "$OUT/${PACKAGE}-${DSM_VERSION}-${PLATFORM}.spk" .
+# DSM SPK is an uncompressed tar archive with unprefixed top-level members.
+tar -C "$ASSEMBLY" -cf "$OUT/${PACKAGE}-${DSM_VERSION}-${PLATFORM}.spk" INFO package.tgz scripts conf
 echo "Built $OUT/${PACKAGE}-${DSM_VERSION}-${PLATFORM}.spk"
