@@ -35,7 +35,7 @@ export PKG_CONFIG_SYSROOT_DIR="$STAGE"
 export LLVM_TARGET_ROOT="$ROOT/work/llvm-${PLATFORM}"
 
 meson setup --wipe "$BUILD_ROOT/libdrm" "$SOURCE_ROOT/libdrm" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
-  -Damdgpu=enabled -Dintel=disabled -Dradeon=disabled -Dnouveau=disabled -Dvmwgfx=disabled
+  -Damdgpu=enabled -Dintel=disabled -Dradeon=enabled -Dnouveau=disabled -Dvmwgfx=disabled
 ninja -C "$BUILD_ROOT/libdrm"
 DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/libdrm" install
 
