@@ -1,5 +1,5 @@
 package="syno-amdgpu-runtime"
-version="0.1.7"
+version="0.1.8"
 displayname="Synology AMDGPU Runtime"
 description="AMD VA-API, RADV Vulkan, and monitoring runtime for DSM."
 arch="epyc7002"

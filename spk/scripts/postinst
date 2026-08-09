@@ -4,4 +4,4 @@ RUNTIME=/var/packages/syno-amdgpu-runtime/target
 test -c /dev/dri/renderD128 || echo "Warning: no AMD DRM render node found yet." >&2
 test -x "$RUNTIME/bin/amdgpu_top"
 "$RUNTIME/bin/helper/amdgpu-path-helper" install
-"$RUNTIME/bin/amdgpu-jellyfin-link.sh" patch
+"$RUNTIME/bin/helper/amdgpu-jellyfin-helper" patch

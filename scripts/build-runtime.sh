@@ -104,7 +104,11 @@ mkdir -p "$STAGE$PREFIX/bin/helper"
 /opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc -O2 -Wall -Wextra -Werror \
   "$ROOT/spk/package/bin/helper/amdgpu-path-helper.c" \
   -o "$STAGE$PREFIX/bin/helper/amdgpu-path-helper"
+/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc -O2 -Wall -Wextra -Werror \
+  "$ROOT/spk/package/bin/helper/amdgpu-jellyfin-helper.c" \
+  -o "$STAGE$PREFIX/bin/helper/amdgpu-jellyfin-helper"
 chmod 0755 "$STAGE$PREFIX/bin/helper/amdgpu-path-helper"
+chmod 0755 "$STAGE$PREFIX/bin/helper/amdgpu-jellyfin-helper"
 
 install -Dm755 "$ROOT/scripts/verify-runtime.sh" "$STAGE$PREFIX/bin/verify-amdgpu-runtime"
 install -Dm755 "$ROOT/spk/package/bin/amdgpu-env" "$STAGE$PREFIX/bin/amdgpu-env"

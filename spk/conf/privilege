@@ -8,10 +8,10 @@
       "permission": "6550"
     },
     {
-      "relpath": "bin/amdgpu-jellyfin-link.sh",
+      "relpath": "bin/helper/amdgpu-jellyfin-helper",
       "user": "root",
       "group": "package",
-      "permission": "0550"
+      "permission": "6550"
     }
   ]
 }
