@@ -1,0 +1,3 @@
+#!/bin/sh
+# Reuse the install-time permissions and compatibility setup after upgrade.
+exec "$(dirname "$0")/postinst" "$@"
