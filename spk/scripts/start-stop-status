@@ -1,10 +1,10 @@
 #!/bin/sh
-# This package only supplies user-space runtime files; DSM nevertheless
-# requires a lifecycle entry point for third-party SPKs.
+# DSM requires this compatibility entry point even for a file-only package.
+# As used by SynoCommunity's SynoCli Video Drivers package, status must return
+# success so DSM does not repeatedly stop/restart an intentionally daemonless
+# package.  ctl_stop="no" in INFO hides all Start/Stop controls from the UI.
 case "${1:-}" in
-  # The runtime has no daemon.  Returning success for status makes DSM mark
-  # the package as "running" even though there is nothing to start.
-  start|stop) exit 0 ;;
-  status) exit 1 ;;
-  *) exit 0 ;;
+  start|stop|status) exit 0 ;;
+  log) exit 1 ;;
+  *) exit 1 ;;
 esac
