@@ -12,7 +12,8 @@ CROSS_FILE=$ROOT/build/${PLATFORM}-${DSM_VERSION}.ini
 
 [[ $PLATFORM == epyc7002 && $DSM_VERSION == 7.4 ]] || { echo "unsupported profile" >&2; exit 2; }
 [[ -x /opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc ]] || { echo "Synology toolchain missing" >&2; exit 1; }
-[[ -n ${LLVM_CONFIG:-} && -x $LLVM_CONFIG ]] || { echo "Set LLVM_CONFIG to DSM-target llvm-config (radeonsi requires LLVM)." >&2; exit 1; }
+[[ -x "$ROOT/scripts/llvm-config-${PLATFORM}.sh" ]] || { echo "Missing LLVM config wrapper for ${PLATFORM}." >&2; exit 1; }
+[[ -f "$ROOT/work/llvm-${PLATFORM}/lib/libLLVM.so.${LLVM_VERSION:-18.1}" ]] || { echo "Missing target libLLVM build." >&2; exit 1; }
 command -v meson >/dev/null
 command -v ninja >/dev/null
 command -v cargo >/dev/null
@@ -31,6 +32,7 @@ done
 export PATH="/opt/${PLATFORM}/bin:$PATH"
 export PKG_CONFIG_PATH="$STAGE$PREFIX/lib/pkgconfig"
 export PKG_CONFIG_SYSROOT_DIR="$STAGE"
+export LLVM_TARGET_ROOT="$ROOT/work/llvm-${PLATFORM}"
 
 meson setup "$BUILD_ROOT/libdrm" "$SOURCE_ROOT/libdrm" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
   -Damdgpu=enabled -Dintel=disabled -Dradeon=disabled -Dnouveau=disabled -Dvmwgfx=disabled
@@ -44,9 +46,14 @@ DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/libva" install
 
 meson setup "$BUILD_ROOT/mesa" "$SOURCE_ROOT/mesa" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
   -Dgallium-drivers=radeonsi -Dvulkan-drivers=amd -Dgallium-va=enabled -Dgallium-vdpau=disabled \
-  -Dplatforms=[] -Dllvm=enabled -Dshared-llvm=enabled -Dllvm-config="$LLVM_CONFIG"
+  -Dplatforms=[] -Dllvm=enabled -Dshared-llvm=enabled
 ninja -C "$BUILD_ROOT/mesa"
 DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/mesa" install
+
+# Mesa and its drivers link to the target ABI's shared LLVM.  Ship it inside
+# the package rather than relying on an absent DSM system LLVM installation.
+install -Dm755 "$LLVM_TARGET_ROOT/lib/libLLVM.so.${LLVM_VERSION:-18.1}" "$STAGE$PREFIX/lib/libLLVM.so.${LLVM_VERSION:-18.1}"
+ln -sfn "libLLVM.so.${LLVM_VERSION:-18.1}" "$STAGE$PREFIX/lib/libLLVM.so"
 
 # This upstream feature opens the staged libdrm at runtime, avoiding a DSM
 # global-library change and allowing the SPK to carry its own ABI-matched copy.
