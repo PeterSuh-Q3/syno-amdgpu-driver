@@ -17,11 +17,13 @@ RUN rm -f /etc/apt/apt.conf.d/docker-clean \
       bison \
       build-essential \
       ca-certificates \
+      clang \
       cmake \
       curl \
       flex \
       git \
       glslang-tools \
+      libclang-dev \
       meson \
       ninja-build \
       pkg-config \
@@ -33,6 +35,7 @@ RUN rm -f /etc/apt/apt.conf.d/docker-clean \
     && rm -rf /var/lib/apt/lists/* \
     && python3 -m pip install --no-cache-dir --break-system-packages meson==1.5.2 \
     && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal \
-    && /root/.cargo/bin/rustup target add x86_64-unknown-linux-gnu
+    && /root/.cargo/bin/rustup target add x86_64-unknown-linux-gnu \
+    && /root/.cargo/bin/cargo install --locked bindgen-cli
 
 ENV PATH=/root/.cargo/bin:${PATH}
