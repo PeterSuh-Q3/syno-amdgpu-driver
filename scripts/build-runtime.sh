@@ -65,6 +65,8 @@ CC=/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc \
   CPPFLAGS="-I$STAGE$PREFIX/include" LDFLAGS="-L$STAGE$PREFIX/lib" \
   "$SOURCE_ROOT/elfutils/configure" --build=x86_64-pc-linux-gnu --host=x86_64-pc-linux-gnu \
     --prefix="$PREFIX" --disable-debuginfod --disable-libdebuginfod --disable-demangler
+# libelf links elfutils' internal libeu archive, which must be built first.
+make -C lib -j"$(nproc)"
 make -C libelf -j"$(nproc)"
 DESTDIR="$STAGE" make -C libelf install
 popd >/dev/null
