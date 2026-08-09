@@ -15,6 +15,8 @@ RUN rm -f /etc/apt/apt.conf.d/docker-clean \
     && apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
       bison \
+      autoconf \
+      automake \
       build-essential \
       ca-certificates \
       clang \
@@ -26,6 +28,7 @@ RUN rm -f /etc/apt/apt.conf.d/docker-clean \
       libclang-dev \
       libclc-14 \
       libclc-14-dev \
+      libtool \
       meson \
       ninja-build \
       pkg-config \

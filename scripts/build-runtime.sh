@@ -26,7 +26,7 @@ if [[ ${RELEASE:-0} == 1 ]] && grep -q ' TODO$' "$ROOT/build/sources.lock"; then
   echo "sources.lock is incomplete; refusing a release build" >&2
   exit 1
 fi
-for required in libdrm libva zlib elfutils mesa amdgpu_top; do
+for required in libdrm libva zlib elfutils mesa ocl-icd amdgpu_top; do
   [[ -d $SOURCE_ROOT/$required ]] || { echo "missing source: $SOURCE_ROOT/$required" >&2; exit 1; }
 done
 
@@ -62,6 +62,23 @@ meson setup --wipe "$BUILD_ROOT/libva" "$SOURCE_ROOT/libva" --cross-file "$CROSS
   -Ddisable_drm=false -Dwith_glx=no -Dwith_wayland=no -Dwith_x11=no
 ninja -C "$BUILD_ROOT/libva"
 DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/libva" install
+
+# ocl-icd is the generic OpenCL dispatch loader.  Mesa's Clover build
+# provides an ICD, but FFmpeg's tonemap_opencl needs this loader to discover
+# the packaged mesa.icd file through OCL_ICD_VENDORS.
+OCL_ICD_BUILD="$BUILD_ROOT/ocl-icd"
+rm -rf "$OCL_ICD_BUILD"
+mkdir -p "$OCL_ICD_BUILD"
+pushd "$SOURCE_ROOT/ocl-icd" >/dev/null
+./bootstrap
+popd >/dev/null
+pushd "$OCL_ICD_BUILD" >/dev/null
+CC=/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc \
+  "$SOURCE_ROOT/ocl-icd/configure" --build=x86_64-pc-linux-gnu --host=x86_64-pc-linux-gnu \
+    --prefix="$PREFIX"
+make -j"$(nproc)"
+DESTDIR="$STAGE" make install
+popd >/dev/null
 
 ZLIB_BUILD="$BUILD_ROOT/zlib"
 rm -rf "$ZLIB_BUILD"
