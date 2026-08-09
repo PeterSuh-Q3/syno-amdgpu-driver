@@ -6,6 +6,12 @@
       "user": "root",
       "group": "package",
       "permission": "6550"
+    },
+    {
+      "relpath": "bin/amdgpu-jellyfin-link.sh",
+      "user": "root",
+      "group": "package",
+      "permission": "0550"
     }
   ]
 }
