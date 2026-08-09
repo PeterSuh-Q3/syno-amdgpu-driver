@@ -28,6 +28,7 @@ RUN rm -f /etc/apt/apt.conf.d/docker-clean \
       python3 \
       python3-mako \
       python3-pip \
+      python3-yaml \
       xz-utils \
     && rm -rf /var/lib/apt/lists/* \
     && python3 -m pip install --no-cache-dir --break-system-packages meson==1.5.2 \
