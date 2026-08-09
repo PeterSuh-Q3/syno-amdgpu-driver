@@ -1,7 +1,7 @@
 # Release builds must replace every TODO with the verified sha256 of the exact
 # archive named in versions.env. build-runtime.sh refuses a release build while
 # this file contains TODO.
-libdrm-2.4.124.tar.xz TODO
-libva-2.22.0.tar.bz2 TODO
-mesa-24.3.4.tar.xz TODO
-amdgpu_top-0.11.5.tar.gz TODO
+libdrm-2.4.124.tar.xz ac36293f61ca4aafaf4b16a2a7afff312aa4f5c37c9fbd797de9e3c0863ca379
+libva-2.22.0.tar.bz2 e3da2250654c8d52b3f59f8cb3f3d8e7fb1a2ee64378dbc400fbc5663de7edb8
+mesa-24.3.4.tar.xz e641ae27191d387599219694560d221b7feaa91c900bcec46bf444218ed66025
+amdgpu_top-0.11.5.tar.gz e511ed15a6e0f3ea72321dfc97145ffb85999b37b6b304e9795978945f3f04cd
