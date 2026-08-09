@@ -14,6 +14,7 @@ CROSS_FILE=$ROOT/build/${PLATFORM}-${DSM_VERSION}.ini
 [[ -x /opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc ]] || { echo "Synology toolchain missing" >&2; exit 1; }
 [[ -x "$ROOT/scripts/llvm-config-${PLATFORM}.sh" ]] || { echo "Missing LLVM config wrapper for ${PLATFORM}." >&2; exit 1; }
 [[ -f "$ROOT/work/llvm-${PLATFORM}/lib/libLLVM.so.${LLVM_VERSION:-18.1}" ]] || { echo "Missing target libLLVM build." >&2; exit 1; }
+[[ -f "$ROOT/work/llvm-${PLATFORM}/lib/libclangBasic.a" ]] || { echo "Missing target Clang libraries for Clover OpenCL." >&2; exit 1; }
 command -v meson >/dev/null
 command -v ninja >/dev/null
 command -v cargo >/dev/null
