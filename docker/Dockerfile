@@ -24,6 +24,8 @@ RUN rm -f /etc/apt/apt.conf.d/docker-clean \
       git \
       glslang-tools \
       libclang-dev \
+      libclc-14 \
+      libclc-14-dev \
       meson \
       ninja-build \
       pkg-config \

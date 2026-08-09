@@ -37,6 +37,21 @@ export PKG_CONFIG_LIBDIR="$STAGE$PREFIX/lib/pkgconfig"
 export PKG_CONFIG_SYSROOT_DIR="$STAGE"
 export LLVM_TARGET_ROOT="$ROOT/work/llvm-${PLATFORM}"
 
+# Clover's OpenCL compiler consumes libclc bitcode at build time and the
+# resulting runtime loads the same files by its pkg-config libexec path.
+mkdir -p "$STAGE$PREFIX/lib/clc" "$STAGE$PREFIX/lib/pkgconfig"
+cp -a /usr/lib/clc/. "$STAGE$PREFIX/lib/clc/"
+cat > "$STAGE$PREFIX/lib/pkgconfig/libclc.pc" <<EOF
+includedir=$PREFIX/include
+libexecdir=$PREFIX/lib/clc
+
+Name: libclc
+Description: OpenCL C language implementation
+Version: 14.0.6
+Cflags: -I\${includedir}
+Libs: -L\${libexecdir}
+EOF
+
 meson setup --wipe "$BUILD_ROOT/libdrm" "$SOURCE_ROOT/libdrm" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
   -Damdgpu=enabled -Dintel=disabled -Dradeon=enabled -Dnouveau=disabled -Dvmwgfx=disabled
 ninja -C "$BUILD_ROOT/libdrm"
@@ -79,7 +94,7 @@ popd >/dev/null
 
 meson setup --wipe "$BUILD_ROOT/mesa" "$SOURCE_ROOT/mesa" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
   -Dgallium-drivers=radeonsi -Dvulkan-drivers=amd -Dgallium-va=enabled -Dgallium-vdpau=disabled \
-  -Dplatforms=[] -Dglx=disabled -Dcpp_rtti=false -Dllvm=enabled -Dshared-llvm=enabled \
+  -Dgallium-opencl=icd -Dplatforms=[] -Dglx=disabled -Dcpp_rtti=false -Dllvm=enabled -Dshared-llvm=enabled \
   -Dvideo-codecs=all
 ninja -C "$BUILD_ROOT/mesa"
 DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/mesa" install
