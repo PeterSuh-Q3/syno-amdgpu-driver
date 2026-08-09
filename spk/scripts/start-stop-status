@@ -1,0 +1,7 @@
+#!/bin/sh
+# This package only supplies user-space runtime files; DSM nevertheless
+# requires a lifecycle entry point for third-party SPKs.
+case "${1:-}" in
+  start|stop|status) exit 0 ;;
+  *) exit 0 ;;
+esac
