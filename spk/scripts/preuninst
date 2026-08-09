@@ -1,2 +1,3 @@
 #!/bin/sh
+rm -f /usr/local/bin/amdgpu_top
 exit 0
