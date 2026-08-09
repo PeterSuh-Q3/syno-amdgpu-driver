@@ -38,7 +38,7 @@ ninja -C "$BUILD_ROOT/libdrm"
 DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/libdrm" install
 
 meson setup "$BUILD_ROOT/libva" "$SOURCE_ROOT/libva" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
-  -Ddrm=true -Dglx=no -Dwayland=no -Dx11=no
+  -Ddisable_drm=false -Dwith_glx=no -Dwith_wayland=no -Dwith_x11=no
 ninja -C "$BUILD_ROOT/libva"
 DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/libva" install
 
