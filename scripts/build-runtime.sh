@@ -46,7 +46,7 @@ DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/libva" install
 
 meson setup --wipe "$BUILD_ROOT/mesa" "$SOURCE_ROOT/mesa" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
   -Dgallium-drivers=radeonsi -Dvulkan-drivers=amd -Dgallium-va=enabled -Dgallium-vdpau=disabled \
-  -Dplatforms=[] -Dllvm=enabled -Dshared-llvm=enabled
+  -Dplatforms=[] -Dglx=disabled -Dllvm=enabled -Dshared-llvm=enabled
 ninja -C "$BUILD_ROOT/mesa"
 DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/mesa" install
 
