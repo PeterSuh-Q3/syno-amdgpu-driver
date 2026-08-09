@@ -29,7 +29,7 @@ for required in libdrm libva zlib elfutils mesa amdgpu_top; do
   [[ -d $SOURCE_ROOT/$required ]] || { echo "missing source: $SOURCE_ROOT/$required" >&2; exit 1; }
 done
 
-export PATH="/opt/${PLATFORM}/bin:$PATH"
+export PATH="/root/.cargo/bin:/opt/${PLATFORM}/bin:$PATH"
 export PKG_CONFIG_PATH="$STAGE$PREFIX/lib/pkgconfig"
 # Do not let the Debian builder's host-only .pc files leak into a DSM target
 # build (notably spirv-tools, whose headers are not in the target sysroot).
