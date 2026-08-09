@@ -1,5 +1,5 @@
 package="syno-amdgpu-runtime"
-version="0.1.5"
+version="0.1.6"
 displayname="Synology AMDGPU Runtime"
 description="AMD VA-API, RADV Vulkan, and monitoring runtime for DSM."
 arch="epyc7002"
@@ -11,6 +11,9 @@ distributor_url="https://github.com/PeterSuh-Q3/syno-amdgpu-driver"
 support_url="https://github.com/PeterSuh-Q3/syno-amdgpu-driver/issues"
 thirdparty="yes"
 beta="false"
+# DSM 7.4 needs both flags for a daemonless runtime: startable prevents a
+# Start action from being offered, while ctl_stop removes service controls.
+startable="no"
 ctl_stop="no"
 ctl_uninstall="yes"
 support_conf_folder="yes"
