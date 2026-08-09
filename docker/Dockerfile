@@ -29,7 +29,6 @@ RUN rm -f /etc/apt/apt.conf.d/docker-clean \
       python3-pip \
       xz-utils \
     && rm -rf /var/lib/apt/lists/* \
-    # Debian 12 ships Meson 1.0, while Mesa 24.3 requires Meson >= 1.1.
     && python3 -m pip install --no-cache-dir --break-system-packages meson==1.5.2 \
     && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal \
     && /root/.cargo/bin/rustup target add x86_64-unknown-linux-gnu
