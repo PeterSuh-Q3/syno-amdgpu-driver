@@ -1,0 +1,25 @@
+FROM dante90/syno-compiler:7.4
+
+USER root
+
+# Native tools execute while building; target artifacts are always linked with
+# /opt/epyc7002/bin/x86_64-pc-linux-gnu-gcc by the build scripts.
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      bison \
+      build-essential \
+      ca-certificates \
+      cmake \
+      curl \
+      flex \
+      git \
+      meson \
+      ninja-build \
+      pkg-config \
+      python3 \
+      python3-mako \
+      xz-utils \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal \
+    && /root/.cargo/bin/rustup target add x86_64-unknown-linux-gnu
+
+ENV PATH=/root/.cargo/bin:${PATH}
