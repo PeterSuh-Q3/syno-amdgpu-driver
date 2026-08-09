@@ -98,6 +98,14 @@ cargo build --release --target x86_64-unknown-linux-gnu --no-default-features --
 install -Dm755 target/x86_64-unknown-linux-gnu/release/amdgpu_top "$STAGE$PREFIX/bin/amdgpu_top"
 popd >/dev/null
 
+# DSM applies root ownership and setuid only to the explicitly declared
+# privilege tool.  It creates/removes the fixed /usr/bin/amdgpu_top shim.
+mkdir -p "$STAGE$PREFIX/bin/helper"
+/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc -O2 -Wall -Wextra -Werror \
+  "$ROOT/spk/package/bin/helper/amdgpu-path-helper.c" \
+  -o "$STAGE$PREFIX/bin/helper/amdgpu-path-helper"
+chmod 0755 "$STAGE$PREFIX/bin/helper/amdgpu-path-helper"
+
 install -Dm755 "$ROOT/scripts/verify-runtime.sh" "$STAGE$PREFIX/bin/verify-amdgpu-runtime"
 install -Dm755 "$ROOT/spk/package/bin/amdgpu-env" "$STAGE$PREFIX/bin/amdgpu-env"
 mkdir -p "$STAGE$PREFIX/etc/vulkan/icd.d"

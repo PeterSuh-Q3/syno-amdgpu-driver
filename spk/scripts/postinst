@@ -3,8 +3,4 @@ set -eu
 RUNTIME=/var/packages/syno-amdgpu-runtime/target
 test -c /dev/dri/renderD128 || echo "Warning: no AMD DRM render node found yet." >&2
 test -x "$RUNTIME/bin/amdgpu_top"
-
-# Keep the monitoring CLI available independently of the current directory.
-# /usr/local/bin is reserved for locally installed DSM extensions.
-mkdir -p /usr/local/bin
-ln -sfn "$RUNTIME/bin/amdgpu_top" /usr/local/bin/amdgpu_top
+"$RUNTIME/bin/helper/amdgpu-path-helper" install
