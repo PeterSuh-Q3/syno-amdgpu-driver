@@ -1,0 +1,14 @@
+# The builder image only needs docker/Dockerfile.  Keeping generated sources
+# and LLVM/Mesa build trees out of the Docker context avoids exhausting the
+# builder VM's disk while rebuilding the image.
+.git
+archives
+dist
+logs
+sources
+work
+spk
+build
+docs
+scripts
+README.md
