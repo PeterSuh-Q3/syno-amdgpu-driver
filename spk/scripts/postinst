@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+RUNTIME=/var/packages/syno-amdgpu-runtime/target
+test -c /dev/dri/renderD128 || echo "Warning: no AMD DRM render node found yet." >&2
+test -x "$RUNTIME/bin/amdgpu_top"

@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT=/work
+PLATFORM=${PLATFORM:-epyc7002}
+DSM_VERSION=${DSM_VERSION:-7.4}
+PREFIX=/var/packages/syno-amdgpu-runtime/target
+BUILD_ROOT=$ROOT/work/${PLATFORM}-${DSM_VERSION}
+SOURCE_ROOT=$ROOT/sources
+STAGE=$BUILD_ROOT/stage
+CROSS_FILE=$ROOT/build/${PLATFORM}-${DSM_VERSION}.ini
+
+[[ $PLATFORM == epyc7002 && $DSM_VERSION == 7.4 ]] || { echo "unsupported profile" >&2; exit 2; }
+[[ -x /opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc ]] || { echo "Synology toolchain missing" >&2; exit 1; }
+[[ -n ${LLVM_CONFIG:-} && -x $LLVM_CONFIG ]] || { echo "Set LLVM_CONFIG to DSM-target llvm-config (radeonsi requires LLVM)." >&2; exit 1; }
+command -v meson >/dev/null
+command -v ninja >/dev/null
+command -v cargo >/dev/null
+mkdir -p "$BUILD_ROOT" "$SOURCE_ROOT" "$STAGE"
+
+# Populate sources/ with the exact archives in build/versions.env, unpacked as
+# libdrm/, libva/, mesa/, and amdgpu_top/. Release builds require locked hashes.
+if [[ ${RELEASE:-0} == 1 ]] && grep -q ' TODO$' "$ROOT/build/sources.lock"; then
+  echo "sources.lock is incomplete; refusing a release build" >&2
+  exit 1
+fi
+for required in libdrm libva mesa amdgpu_top; do
+  [[ -d $SOURCE_ROOT/$required ]] || { echo "missing source: $SOURCE_ROOT/$required" >&2; exit 1; }
+done
+
+export PATH="/opt/${PLATFORM}/bin:$PATH"
+export PKG_CONFIG_PATH="$STAGE$PREFIX/lib/pkgconfig"
+export PKG_CONFIG_SYSROOT_DIR="$STAGE"
+
+meson setup "$BUILD_ROOT/libdrm" "$SOURCE_ROOT/libdrm" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
+  -Damdgpu=enabled -Dintel=disabled -Dradeon=disabled -Dnouveau=disabled -Dvmwgfx=disabled
+ninja -C "$BUILD_ROOT/libdrm"
+DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/libdrm" install
+
+meson setup "$BUILD_ROOT/libva" "$SOURCE_ROOT/libva" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
+  -Ddrm=true -Dglx=no -Dwayland=no -Dx11=no
+ninja -C "$BUILD_ROOT/libva"
+DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/libva" install
+
+meson setup "$BUILD_ROOT/mesa" "$SOURCE_ROOT/mesa" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
+  -Dgallium-drivers=radeonsi -Dvulkan-drivers=amd -Dgallium-va=enabled -Dgallium-vdpau=disabled \
+  -Dplatforms=[] -Dllvm=enabled -Dshared-llvm=enabled -Dllvm-config="$LLVM_CONFIG"
+ninja -C "$BUILD_ROOT/mesa"
+DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/mesa" install
+
+# This upstream feature opens the staged libdrm at runtime, avoiding a DSM
+# global-library change and allowing the SPK to carry its own ABI-matched copy.
+export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc
+export RUSTFLAGS="-C link-arg=-Wl,-rpath,\$ORIGIN/../lib"
+pushd "$SOURCE_ROOT/amdgpu_top" >/dev/null
+cargo build --release --target x86_64-unknown-linux-gnu --no-default-features --features dynamic_loading_package
+install -Dm755 target/x86_64-unknown-linux-gnu/release/amdgpu_top "$STAGE$PREFIX/bin/amdgpu_top"
+popd >/dev/null
+
+install -Dm755 "$ROOT/scripts/verify-runtime.sh" "$STAGE$PREFIX/bin/verify-amdgpu-runtime"
+install -Dm755 "$ROOT/spk/package/bin/amdgpu-env" "$STAGE$PREFIX/bin/amdgpu-env"
+mkdir -p "$STAGE$PREFIX/etc/vulkan/icd.d"
+cp "$ROOT/spk/package/etc/vulkan/icd.d/radeon_icd.x86_64.json" "$STAGE$PREFIX/etc/vulkan/icd.d/"
+"$ROOT/scripts/package-spk.sh" "$STAGE" "$PLATFORM" "$DSM_VERSION"

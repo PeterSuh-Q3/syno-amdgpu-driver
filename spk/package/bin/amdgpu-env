@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+ROOT=/var/packages/syno-amdgpu-runtime/target
+export LD_LIBRARY_PATH="$ROOT/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export LIBVA_DRIVERS_PATH="$ROOT/lib"
+export LIBVA_DRIVER_NAME=radeonsi
+export VK_ICD_FILENAMES="$ROOT/etc/vulkan/icd.d/radeon_icd.x86_64.json"
+exec "$@"

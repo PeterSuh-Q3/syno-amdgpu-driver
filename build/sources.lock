@@ -1,0 +1,7 @@
+# Release builds must replace every TODO with the verified sha256 of the exact
+# archive named in versions.env. build-runtime.sh refuses a release build while
+# this file contains TODO.
+libdrm-2.4.124.tar.xz TODO
+libva-2.22.0.tar.bz2 TODO
+mesa-24.3.4.tar.xz TODO
+amdgpu_top-0.11.5.tar.gz TODO

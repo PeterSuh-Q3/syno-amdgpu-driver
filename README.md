@@ -41,3 +41,13 @@ DSM 7.4에서 검증한 동일한 소스·패키징 구성을 DSM 7.3, 7.2, 7.1,
 5. 성공한 구성을 DSM 7.0까지 버전별 toolchain으로 하향 빌드·검증한다.
 
 자세한 설계는 [docs/architecture.md](docs/architecture.md)를 참조하십시오.
+
+## SPK 빌드 골격
+
+DSM 7.4 `epyc7002`용 첫 빌드는 `dante90/syno-compiler:7.4` 컨테이너에서 수행한다.
+
+```bash
+./scripts/run-spk-build.sh 7.4 epyc7002
+```
+
+빌드 정의는 `build/`에, DSM 패키지 메타데이터와 설치 스크립트는 `spk/`에 있다. Mesa의 `radeonsi`는 LLVM을 필요로 하므로, 빌드 컨테이너에는 DSM ABI용 `llvm-config`와 동적 `libLLVM`이 먼저 준비되어야 한다. 이 골격은 그 경로를 `LLVM_CONFIG`로 명시적으로 받으며, DSM 전역 라이브러리를 변경하지 않는다. 소스 준비와 실행 조건은 [빌드 가이드](docs/build.md)를 참조한다.
