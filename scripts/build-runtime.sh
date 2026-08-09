@@ -69,6 +69,9 @@ CC=/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc \
 make -C lib -j"$(nproc)"
 make -C libelf -j"$(nproc)"
 DESTDIR="$STAGE" make -C libelf install
+# `make -C libelf install` does not install the generated pkg-config metadata;
+# Mesa discovers libelf through this file during its cross configuration.
+install -Dm644 "$ELF_BUILD/config/libelf.pc" "$STAGE$PREFIX/lib/pkgconfig/libelf.pc"
 popd >/dev/null
 
 meson setup --wipe "$BUILD_ROOT/mesa" "$SOURCE_ROOT/mesa" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
