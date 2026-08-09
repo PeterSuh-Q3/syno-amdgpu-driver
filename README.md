@@ -26,11 +26,18 @@ ffmpeg -init_hw_device vaapi=amd:/dev/dri/renderD128 -hwaccel vaapi -i input.mp4
 
 `scripts/verify-runtime.sh`은 위 런타임을 설치한 뒤의 읽기 전용 점검을 자동화합니다.
 
+## 지원·검증 정책
+
+DSM 7.4 실기 검증을 최우선으로 한다. 첫 릴리스는 현재 준비된 실기에서 Mesa `radeonsi` VA-API와 RADV Vulkan을 끝까지 검증한 뒤에만 만든다.
+
+DSM 7.4에서 검증한 동일한 소스·패키징 구성을 DSM 7.3, 7.2, 7.1, 7.0 순으로 각 버전의 Synology toolchain으로 다시 빌드하고, 해당 DSM 실기 또는 동등한 검증 환경에서 확인한다. 하위 DSM 빌드는 선행 버전의 검증이 성공한 범위만 지원한다.
+
 ## 개발 방향
 
-1. DSM 7.2 x64 (`epyc7002`) toolchain으로 `libdrm`, `libva`, Mesa를 빌드한다.
+1. DSM 7.4 x64 (`epyc7002`) toolchain으로 `libdrm`, `libva`, Mesa를 빌드한다.
 2. Mesa는 Gallium `radeonsi`, VA-API, Vulkan `radv`를 포함한다.
 3. SPK가 라이브러리와 ICD/VA driver 검색 경로를 자체 패키지 내부에 보존한다.
-4. Jellyfin/컨테이너에서 `/dev/dri/renderD128` 권한과 환경 변수를 검증한다.
+4. DSM 7.4 실기에서 `vainfo`, `vulkaninfo`, FFmpeg 및 Jellyfin/컨테이너 트랜스코딩을 검증한다.
+5. 성공한 구성을 DSM 7.0까지 버전별 toolchain으로 하향 빌드·검증한다.
 
 자세한 설계는 [docs/architecture.md](docs/architecture.md)를 참조하십시오.
