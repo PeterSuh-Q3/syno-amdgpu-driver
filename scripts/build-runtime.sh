@@ -31,6 +31,9 @@ done
 
 export PATH="/opt/${PLATFORM}/bin:$PATH"
 export PKG_CONFIG_PATH="$STAGE$PREFIX/lib/pkgconfig"
+# Do not let the Debian builder's host-only .pc files leak into a DSM target
+# build (notably spirv-tools, whose headers are not in the target sysroot).
+export PKG_CONFIG_LIBDIR="$STAGE$PREFIX/lib/pkgconfig"
 export PKG_CONFIG_SYSROOT_DIR="$STAGE"
 export LLVM_TARGET_ROOT="$ROOT/work/llvm-${PLATFORM}"
 
