@@ -25,7 +25,7 @@ for arg in "$@"; do
     --has-rtti) printf '%s\n' 'NO' ;;
     # Meson checks requested component names against this list before using
     # --libfiles.  They are all provided by the monolithic shared libLLVM.
-    --components) printf '%s\n' 'amdgpu bitreader bitwriter core engine executionengine instcombine ipo mcdisassembler mcjit native scalaropts transformutils coroutines lto' ;;
+    --components) printf '%s\n' 'amdgpu bitreader bitwriter core coverage engine executionengine instcombine instrumentation ipo irreader linker lto mcdisassembler mcjit native objcarcopts option profiledata scalaropts transformutils coroutines frontendopenmp windowsdriver' ;;
     --link-shared|--ignore-libllvm) ;;
     *) ;;
   esac
