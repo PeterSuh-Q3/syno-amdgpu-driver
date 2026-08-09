@@ -25,7 +25,7 @@ if [[ ${RELEASE:-0} == 1 ]] && grep -q ' TODO$' "$ROOT/build/sources.lock"; then
   echo "sources.lock is incomplete; refusing a release build" >&2
   exit 1
 fi
-for required in libdrm libva mesa amdgpu_top; do
+for required in libdrm libva elfutils mesa amdgpu_top; do
   [[ -d $SOURCE_ROOT/$required ]] || { echo "missing source: $SOURCE_ROOT/$required" >&2; exit 1; }
 done
 
@@ -43,6 +43,20 @@ meson setup --wipe "$BUILD_ROOT/libva" "$SOURCE_ROOT/libva" --cross-file "$CROSS
   -Ddisable_drm=false -Dwith_glx=no -Dwith_wayland=no -Dwith_x11=no
 ninja -C "$BUILD_ROOT/libva"
 DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/libva" install
+
+# radeonsi requires libelf.  Build only elfutils' libelf component so the
+# runtime stays focused on GPU userspace rather than the full elfutils suite.
+ELF_BUILD="$BUILD_ROOT/elfutils"
+rm -rf "$ELF_BUILD"
+mkdir -p "$ELF_BUILD"
+pushd "$ELF_BUILD" >/dev/null
+CC=/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc \
+  CXX=/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-g++ \
+  "$SOURCE_ROOT/elfutils/configure" --build=x86_64-pc-linux-gnu --host=x86_64-pc-linux-gnu \
+    --prefix="$PREFIX" --disable-debuginfod --disable-libdebuginfod --disable-demangler
+make -C libelf -j"$(nproc)"
+DESTDIR="$STAGE" make -C libelf install
+popd >/dev/null
 
 meson setup --wipe "$BUILD_ROOT/mesa" "$SOURCE_ROOT/mesa" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
   -Dgallium-drivers=radeonsi -Dvulkan-drivers=amd -Dgallium-va=enabled -Dgallium-vdpau=disabled \
