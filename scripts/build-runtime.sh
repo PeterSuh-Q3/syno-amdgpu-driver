@@ -94,7 +94,7 @@ popd >/dev/null
 
 meson setup --wipe "$BUILD_ROOT/mesa" "$SOURCE_ROOT/mesa" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
   -Dgallium-drivers=radeonsi -Dvulkan-drivers=amd -Dgallium-va=enabled -Dgallium-vdpau=disabled \
-  -Dgallium-opencl=icd -Dplatforms=[] -Dglx=disabled -Dcpp_rtti=false -Dllvm=enabled -Dshared-llvm=enabled \
+  -Dgallium-opencl=icd -Dplatforms=[] -Dglx=disabled -Dcpp_rtti=true -Dllvm=enabled -Dshared-llvm=enabled \
   -Dvideo-codecs=all
 ninja -C "$BUILD_ROOT/mesa"
 DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/mesa" install
