@@ -34,17 +34,17 @@ export PKG_CONFIG_PATH="$STAGE$PREFIX/lib/pkgconfig"
 export PKG_CONFIG_SYSROOT_DIR="$STAGE"
 export LLVM_TARGET_ROOT="$ROOT/work/llvm-${PLATFORM}"
 
-meson setup "$BUILD_ROOT/libdrm" "$SOURCE_ROOT/libdrm" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
+meson setup --wipe "$BUILD_ROOT/libdrm" "$SOURCE_ROOT/libdrm" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
   -Damdgpu=enabled -Dintel=disabled -Dradeon=disabled -Dnouveau=disabled -Dvmwgfx=disabled
 ninja -C "$BUILD_ROOT/libdrm"
 DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/libdrm" install
 
-meson setup "$BUILD_ROOT/libva" "$SOURCE_ROOT/libva" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
+meson setup --wipe "$BUILD_ROOT/libva" "$SOURCE_ROOT/libva" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
   -Ddisable_drm=false -Dwith_glx=no -Dwith_wayland=no -Dwith_x11=no
 ninja -C "$BUILD_ROOT/libva"
 DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/libva" install
 
-meson setup "$BUILD_ROOT/mesa" "$SOURCE_ROOT/mesa" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
+meson setup --wipe "$BUILD_ROOT/mesa" "$SOURCE_ROOT/mesa" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
   -Dgallium-drivers=radeonsi -Dvulkan-drivers=amd -Dgallium-va=enabled -Dgallium-vdpau=disabled \
   -Dplatforms=[] -Dllvm=enabled -Dshared-llvm=enabled
 ninja -C "$BUILD_ROOT/mesa"
