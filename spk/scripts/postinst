@@ -5,3 +5,4 @@ test -c /dev/dri/renderD128 || echo "Warning: no AMD DRM render node found yet."
 test -x "$RUNTIME/bin/amdgpu_top"
 "$RUNTIME/bin/helper/amdgpu-path-helper" install
 "$RUNTIME/bin/helper/amdgpu-jellyfin-helper" patch
+"$RUNTIME/bin/helper/amdgpu-jellyfin-helper" configure

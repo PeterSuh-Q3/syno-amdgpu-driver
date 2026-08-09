@@ -7,6 +7,7 @@ JELLYFIN_SETUP=/var/packages/jellyfin/scripts/service-setup
 BACKUP=${JELLYFIN_SETUP}.pre-amdgpu-runtime.bak
 STOCK=/var/packages/ffmpeg7/target/bin/ffmpeg
 AMD=/var/packages/syno-amdgpu-runtime/target/bin/amdgpu-ffmpeg
+AUTOCONFIG=/var/packages/syno-amdgpu-runtime/target/bin/amdgpu-jellyfin-autoconfig.sh
 
 case "${1:-}" in
   patch)
@@ -32,8 +33,11 @@ case "${1:-}" in
       chmod 0755 "$JELLYFIN_SETUP"
     fi
     ;;
+  configure)
+    [ -x "$AUTOCONFIG" ] && "$AUTOCONFIG"
+    ;;
   *)
-    echo "usage: amdgpu-jellyfin-link.sh {patch|restore}" >&2
+    echo "usage: amdgpu-jellyfin-link.sh {patch|restore|configure}" >&2
     exit 2
     ;;
 esac

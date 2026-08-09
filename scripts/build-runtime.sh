@@ -129,6 +129,7 @@ install -Dm755 "$ROOT/scripts/verify-runtime.sh" "$STAGE$PREFIX/bin/verify-amdgp
 install -Dm755 "$ROOT/spk/package/bin/amdgpu-env" "$STAGE$PREFIX/bin/amdgpu-env"
 install -Dm755 "$ROOT/spk/package/bin/amdgpu-ffmpeg" "$STAGE$PREFIX/bin/amdgpu-ffmpeg"
 install -Dm755 "$ROOT/spk/package/bin/amdgpu-jellyfin-link.sh" "$STAGE$PREFIX/bin/amdgpu-jellyfin-link.sh"
+install -Dm755 "$ROOT/spk/package/bin/amdgpu-jellyfin-autoconfig.sh" "$STAGE$PREFIX/bin/amdgpu-jellyfin-autoconfig.sh"
 mkdir -p "$STAGE$PREFIX/etc/vulkan/icd.d"
 cp "$ROOT/spk/package/etc/vulkan/icd.d/radeon_icd.x86_64.json" "$STAGE$PREFIX/etc/vulkan/icd.d/"
 "$ROOT/scripts/package-spk.sh" "$STAGE" "$PLATFORM" "$DSM_VERSION"

@@ -7,8 +7,8 @@
 #define BACKEND "/var/packages/syno-amdgpu-runtime/target/bin/amdgpu-jellyfin-link.sh"
 
 int main(int argc, char *argv[]) {
-    if (argc != 2 || (strcmp(argv[1], "patch") && strcmp(argv[1], "restore"))) {
-        fprintf(stderr, "usage: amdgpu-jellyfin-helper {patch|restore}\n");
+    if (argc != 2 || (strcmp(argv[1], "patch") && strcmp(argv[1], "restore") && strcmp(argv[1], "configure"))) {
+        fprintf(stderr, "usage: amdgpu-jellyfin-helper {patch|restore|configure}\n");
         return 2;
     }
     if (setuid(0) != 0) {
