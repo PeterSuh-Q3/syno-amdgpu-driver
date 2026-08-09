@@ -5,9 +5,12 @@ set -euo pipefail
 
 : "${LLVM_TARGET_ROOT:?LLVM_TARGET_ROOT must name the target LLVM build}"
 LLVM_VERSION=${LLVM_VERSION:-18.1.8}
+LLVM_ABI_VERSION=${LLVM_ABI_VERSION:-18.1}
 SOURCE_ROOT=${LLVM_SOURCE_ROOT:-/work/sources/llvm-project/llvm}
 INCLUDEDIR="$SOURCE_ROOT/include"
 GENERATED_INCLUDEDIR="$LLVM_TARGET_ROOT/include"
+CLANG_INCLUDEDIR="$(dirname "$SOURCE_ROOT")/clang/include"
+CLANG_GENERATED_INCLUDEDIR="$LLVM_TARGET_ROOT/tools/clang/include"
 LIBDIR="$LLVM_TARGET_ROOT/lib"
 
 for arg in "$@"; do
@@ -16,9 +19,9 @@ for arg in "$@"; do
     --prefix) printf '%s\n' "$LLVM_TARGET_ROOT" ;;
     --includedir) printf '%s\n' "$INCLUDEDIR" ;;
     --libdir) printf '%s\n' "$LIBDIR" ;;
-    --cppflags|--cxxflags) printf '%s\n' "-I$INCLUDEDIR -I$GENERATED_INCLUDEDIR" ;;
+    --cppflags|--cxxflags) printf '%s\n' "-I$INCLUDEDIR -I$GENERATED_INCLUDEDIR -I$CLANG_INCLUDEDIR -I$CLANG_GENERATED_INCLUDEDIR" ;;
     --ldflags) printf '%s\n' "-L$LIBDIR" ;;
-    --libfiles) printf '%s\n' "$LIBDIR/libLLVM.so.$LLVM_VERSION" ;;
+    --libfiles) printf '%s\n' "$LIBDIR/libLLVM.so.$LLVM_ABI_VERSION" ;;
     --libs|--libs=*) printf '%s\n' '-lLLVM' ;;
     --system-libs) printf '%s\n' '-lz -lm -ldl -lpthread' ;;
     --shared-mode) printf '%s\n' 'shared' ;;

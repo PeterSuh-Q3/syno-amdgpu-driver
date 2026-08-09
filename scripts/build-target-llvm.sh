@@ -5,6 +5,7 @@ set -euo pipefail
 ROOT=/work
 PLATFORM=${PLATFORM:-epyc7002}
 LLVM_VERSION=${LLVM_VERSION:-18.1.8}
+LLVM_ABI_VERSION=${LLVM_ABI_VERSION:-18.1}
 SOURCE="$ROOT/sources/llvm-project/llvm"
 BUILD="$ROOT/work/llvm-${PLATFORM}"
 TOOLCHAIN=/opt/${PLATFORM}/bin
@@ -29,7 +30,7 @@ cmake -S "$SOURCE" -B "$BUILD" -G Ninja \
   -DLLVM_ENABLE_ZLIB=ON -DLLVM_ENABLE_ZSTD=ON
 ninja -C "$BUILD" -j"$(nproc)"
 
-test -f "$BUILD/lib/libLLVM.so.${LLVM_VERSION}" || {
+test -f "$BUILD/lib/libLLVM.so.${LLVM_ABI_VERSION}" || {
   echo "target libLLVM was not produced" >&2; exit 1;
 }
 test -f "$BUILD/lib/libclangBasic.a" || {
