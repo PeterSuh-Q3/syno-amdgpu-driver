@@ -9,6 +9,7 @@ LLVM_ABI_VERSION=${LLVM_ABI_VERSION:-18.1}
 SOURCE="$ROOT/sources/llvm-project/llvm"
 BUILD="$ROOT/work/llvm-${PLATFORM}"
 TOOLCHAIN=/opt/${PLATFORM}/bin
+COMPILE_JOBS=${COMPILE_JOBS:-$(nproc)}
 
 [[ -x "$TOOLCHAIN/x86_64-pc-linux-gnu-gcc" ]] || { echo "Synology toolchain missing for $PLATFORM" >&2; exit 2; }
 [[ -d $SOURCE && -d "$ROOT/sources/llvm-project/clang" ]] || {
@@ -28,7 +29,7 @@ cmake -S "$SOURCE" -B "$BUILD" -G Ninja \
   -DLLVM_ENABLE_RTTI=ON -DLLVM_BUILD_TOOLS=OFF \
   -DLLVM_ENABLE_TERMINFO=OFF -DLLVM_ENABLE_LIBXML2=ON \
   -DLLVM_ENABLE_ZLIB=ON -DLLVM_ENABLE_ZSTD=ON
-ninja -C "$BUILD" -j"$(nproc)"
+ninja -C "$BUILD" -j"$COMPILE_JOBS"
 
 test -f "$BUILD/lib/libLLVM.so.${LLVM_ABI_VERSION}" || {
   echo "target libLLVM was not produced" >&2; exit 1;

@@ -11,6 +11,9 @@ LOG_DIR="$ROOT/logs"
 mkdir -p "$STATE_DIR" "$LOG_DIR"
 [[ -f $PLATFORMS_FILE ]] || { echo "Missing platform list: $PLATFORMS_FILE" >&2; exit 2; }
 (( BUILD_JOBS >= 1 && BUILD_JOBS <= 2 )) || { echo 'BUILD_JOBS must be 1 or 2' >&2; exit 2; }
+COMPILE_JOBS=${COMPILE_JOBS:-$(( $(nproc) / BUILD_JOBS ))}
+(( COMPILE_JOBS >= 1 )) || { echo 'COMPILE_JOBS must be at least 1' >&2; exit 2; }
+export COMPILE_JOBS
 
 declare -a KEYS=() PIDS=()
 while IFS=$'\t' read -r platform dsm _; do
@@ -25,7 +28,7 @@ done
 
 render() {
   printf '\033[2J\033[H'
-  printf 'Synology AMDGPU multi-build  %s  (max %s concurrent)\n\n' "$(date '+%F %T')" "$BUILD_JOBS"
+  printf 'Synology AMDGPU multi-build  %s  (max %s concurrent, -j%s each)\n\n' "$(date '+%F %T')" "$BUILD_JOBS" "$COMPILE_JOBS"
   printf '%-22s %-12s %-10s %s\n' PLATFORM PHASE STATE PROGRESS
   for key in "${KEYS[@]}"; do
     local phase=queued state=waiting count='-'

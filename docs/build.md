@@ -32,7 +32,7 @@ sources/amdgpu_top
 ./scripts/full-build.sh
 ```
 
-기본 동시 빌드는 2개다. 목록을 일부만 빌드하려면 별도 파일을 지정한다.
+기본 동시 빌드는 2개다. `full-build.sh`는 VM의 CPU 스레드를 동시 빌드 수로 나누어 플랫폼별 `-j` 값을 자동 설정한다. 예를 들어 12 스레드 VM에서는 2개 플랫폼을 동시에 빌드할 때 각각 `-j6`으로 제한한다.
 
 ```bash
 PLATFORMS_FILE=build/ALL-PLATFORMS BUILD_JOBS=2 ./scripts/full-build.sh

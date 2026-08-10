@@ -9,6 +9,7 @@ BUILD_ROOT=$ROOT/work/${PLATFORM}-${DSM_VERSION}
 SOURCE_ROOT=$ROOT/sources
 STAGE=$BUILD_ROOT/stage
 CROSS_FILE=${CROSS_FILE:-$ROOT/work/profiles/${PLATFORM}-${DSM_VERSION}.ini}
+COMPILE_JOBS=${COMPILE_JOBS:-$(nproc)}
 
 [[ -x /opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc ]] || { echo "Synology toolchain missing" >&2; exit 1; }
 [[ -x "$ROOT/scripts/llvm-config-synology-x64.sh" ]] || { echo "Missing LLVM config wrapper." >&2; exit 1; }
@@ -58,13 +59,13 @@ EOF
 progress libdrm running
 meson setup --wipe "$BUILD_ROOT/libdrm" "$SOURCE_ROOT/libdrm" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
   -Damdgpu=enabled -Dintel=disabled -Dradeon=enabled -Dnouveau=disabled -Dvmwgfx=disabled
-ninja -C "$BUILD_ROOT/libdrm"
+ninja -C "$BUILD_ROOT/libdrm" -j"$COMPILE_JOBS"
 DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/libdrm" install
 
 progress libva running
 meson setup --wipe "$BUILD_ROOT/libva" "$SOURCE_ROOT/libva" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
   -Ddisable_drm=false -Dwith_glx=no -Dwith_wayland=no -Dwith_x11=no
-ninja -C "$BUILD_ROOT/libva"
+ninja -C "$BUILD_ROOT/libva" -j"$COMPILE_JOBS"
 DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/libva" install
 
 # ocl-icd is the generic OpenCL dispatch loader.  Mesa's Clover build
@@ -83,7 +84,7 @@ pushd "$OCL_ICD_BUILD" >/dev/null
 CC=/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc \
   "$OCL_ICD_SOURCE/configure" --build=x86_64-pc-linux-gnu --host=x86_64-pc-linux-gnu \
     --prefix="$PREFIX"
-make -j"$(nproc)"
+make -j"$COMPILE_JOBS"
 DESTDIR="$STAGE" make install
 popd >/dev/null
 
@@ -93,7 +94,7 @@ mkdir -p "$ZLIB_BUILD"
 pushd "$ZLIB_BUILD" >/dev/null
 CHOST=x86_64-pc-linux-gnu CC=/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc \
   "$SOURCE_ROOT/zlib/configure" --prefix="$PREFIX" --shared
-make -j"$(nproc)"
+make -j"$COMPILE_JOBS"
 DESTDIR="$STAGE" make install
 popd >/dev/null
 
@@ -109,8 +110,8 @@ CC=/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc \
   "$SOURCE_ROOT/elfutils/configure" --build=x86_64-pc-linux-gnu --host=x86_64-pc-linux-gnu \
     --prefix="$PREFIX" --disable-debuginfod --disable-libdebuginfod --disable-demangler
 # libelf links elfutils' internal libeu archive, which must be built first.
-make -C lib -j"$(nproc)"
-make -C libelf -j"$(nproc)"
+make -C lib -j"$COMPILE_JOBS"
+make -C libelf -j"$COMPILE_JOBS"
 DESTDIR="$STAGE" make -C libelf install
 # `make -C libelf install` does not install the generated pkg-config metadata;
 # Mesa discovers libelf through this file during its cross configuration.
@@ -123,7 +124,7 @@ meson setup --wipe "$BUILD_ROOT/mesa" "$SOURCE_ROOT/mesa" --cross-file "$CROSS_F
   -Dgallium-drivers=radeonsi -Dvulkan-drivers=amd -Dgallium-va=enabled -Dgallium-vdpau=disabled \
   -Dgallium-opencl=icd -Dplatforms=[] -Dglx=disabled -Dcpp_rtti=true -Dllvm=enabled -Dshared-llvm=enabled \
   -Dvideo-codecs=all
-ninja -C "$BUILD_ROOT/mesa"
+ninja -C "$BUILD_ROOT/mesa" -j"$COMPILE_JOBS"
 DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/mesa" install
 
 # Mesa and its drivers link to the target ABI's shared LLVM.  Ship it inside
@@ -140,7 +141,7 @@ export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=/opt/${PLATFORM}/bin/x86_64-
 export RUSTFLAGS="-C link-arg=-Wl,-rpath,\$ORIGIN/../lib"
 progress amdgpu_top running
 pushd "$SOURCE_ROOT/amdgpu_top" >/dev/null
-CARGO_TARGET_DIR="$BUILD_ROOT/cargo-target" cargo build --release --target x86_64-unknown-linux-gnu --no-default-features --features dynamic_loading_package
+CARGO_BUILD_JOBS="$COMPILE_JOBS" CARGO_TARGET_DIR="$BUILD_ROOT/cargo-target" cargo build --release --target x86_64-unknown-linux-gnu --no-default-features --features dynamic_loading_package
 install -Dm755 "$BUILD_ROOT/cargo-target/x86_64-unknown-linux-gnu/release/amdgpu_top" "$STAGE$PREFIX/bin/amdgpu_top"
 popd >/dev/null
 
