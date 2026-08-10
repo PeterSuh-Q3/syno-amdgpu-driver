@@ -1,11 +1,14 @@
-FROM dante90/syno-compiler:7.4 AS synology-toolchain
+ARG DSM_VERSION=7.4
+FROM dante90/syno-compiler:${DSM_VERSION} AS synology-toolchain
 
 FROM debian:12-slim
 
 # The compiler image supplies the DSM ABI toolchain. Its Debian package manager
 # cannot unpack current .deb archives, so native build tools are installed from
 # a clean Debian layer instead of modifying the compiler image in place.
-COPY --from=synology-toolchain /opt/epyc7002 /opt/epyc7002
+# Keep every toolchain shipped by the DSM compiler image.  The platform
+# selected from build/ALL-PLATFORMS chooses /opt/<platform>/bin at runtime.
+COPY --from=synology-toolchain /opt /opt
 
 USER 0
 
