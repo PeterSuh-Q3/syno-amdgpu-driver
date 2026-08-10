@@ -10,7 +10,7 @@ SOURCE="$ROOT/sources/llvm-project/llvm"
 BUILD="$ROOT/work/llvm-${PLATFORM}"
 TOOLCHAIN=/opt/${PLATFORM}/bin
 
-[[ $PLATFORM == epyc7002 ]] || { echo "unsupported LLVM target: $PLATFORM" >&2; exit 2; }
+[[ -x "$TOOLCHAIN/x86_64-pc-linux-gnu-gcc" ]] || { echo "Synology toolchain missing for $PLATFORM" >&2; exit 2; }
 [[ -d $SOURCE && -d "$ROOT/sources/llvm-project/clang" ]] || {
   echo "llvm-project source (including clang) is required" >&2; exit 1;
 }

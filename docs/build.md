@@ -1,6 +1,7 @@
-# DSM 7.4 epyc7002 SPK build
+# DSM 7.4 AMDGPU runtime SPK build
 
-이 초기 프로파일은 DSM 7.4 `epyc7002`만 대상으로 한다. 결과물은 `dist/syno-amdgpu-runtime-7.4-epyc7002.spk`이다.
+`build/ALL-PLATFORMS`에 등록된 DSM 7.4 x86_64 플랫폼을 대상으로 한다.
+개별 결과물은 `dist/syno-amdgpu-runtime-7.4-<platform>.spk`이다.
 
 ## Build container prerequisites
 
@@ -28,7 +29,15 @@ sources/amdgpu_top
 ## Build
 
 ```bash
-LLVM_CONFIG=/path/to/target/llvm-config ./scripts/run-spk-build.sh 7.4 epyc7002
+./scripts/full-build.sh
 ```
+
+기본 동시 빌드는 2개다. 목록을 일부만 빌드하려면 별도 파일을 지정한다.
+
+```bash
+PLATFORMS_FILE=build/ALL-PLATFORMS BUILD_JOBS=2 ./scripts/full-build.sh
+```
+
+빌드 중에는 플랫폼별 `llvm → libdrm → libva → mesa-prereqs → mesa → amdgpu_top → complete` 단계와 Ninja 카운트가 실시간 표시된다. 세부 로그는 `logs/`, 상태 파일은 `work/status/`에 남는다.
 
 Mesa와 `amdgpu_top`은 패키지 내부의 라이브러리를 찾도록 RPATH/환경 래퍼를 사용한다. DSM의 `/usr/lib`를 수정하거나 덮어쓰지 않는다.

@@ -1,0 +1,5 @@
+# PLATFORM<TAB>DSM_VERSION
+# Add supported x86_64 DSM 7.4 platform toolchains here.  full-build.sh
+# schedules at most BUILD_JOBS entries at once (default: 2).
+epyc7002	7.4
+epyc7003	7.4

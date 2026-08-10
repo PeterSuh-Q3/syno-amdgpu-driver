@@ -8,17 +8,18 @@ PREFIX=/var/packages/syno-amdgpu-runtime/target
 BUILD_ROOT=$ROOT/work/${PLATFORM}-${DSM_VERSION}
 SOURCE_ROOT=$ROOT/sources
 STAGE=$BUILD_ROOT/stage
-CROSS_FILE=$ROOT/build/${PLATFORM}-${DSM_VERSION}.ini
+CROSS_FILE=${CROSS_FILE:-$ROOT/work/profiles/${PLATFORM}-${DSM_VERSION}.ini}
 
-[[ $PLATFORM == epyc7002 && $DSM_VERSION == 7.4 ]] || { echo "unsupported profile" >&2; exit 2; }
 [[ -x /opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc ]] || { echo "Synology toolchain missing" >&2; exit 1; }
-[[ -x "$ROOT/scripts/llvm-config-${PLATFORM}.sh" ]] || { echo "Missing LLVM config wrapper for ${PLATFORM}." >&2; exit 1; }
+[[ -x "$ROOT/scripts/llvm-config-synology-x64.sh" ]] || { echo "Missing LLVM config wrapper." >&2; exit 1; }
+[[ -f "$CROSS_FILE" ]] || { echo "Missing cross file: $CROSS_FILE" >&2; exit 1; }
 [[ -f "$ROOT/work/llvm-${PLATFORM}/lib/libLLVM.so.${LLVM_VERSION:-18.1}" ]] || { echo "Missing target libLLVM build." >&2; exit 1; }
 [[ -f "$ROOT/work/llvm-${PLATFORM}/lib/libclangBasic.a" ]] || { echo "Missing target Clang libraries for Clover OpenCL." >&2; exit 1; }
 command -v meson >/dev/null
 command -v ninja >/dev/null
 command -v cargo >/dev/null
 mkdir -p "$BUILD_ROOT" "$SOURCE_ROOT" "$STAGE"
+progress() { [[ -n ${STATUS_FILE:-} ]] && printf '%s\t%s\t%s\n' "$1" "$2" "$(date +%s)" > "$STATUS_FILE"; }
 
 # Populate sources/ with the exact archives in build/versions.env, unpacked as
 # libdrm/, libva/, mesa/, and amdgpu_top/. Release builds require locked hashes.
@@ -54,11 +55,13 @@ Cflags: -I\${includedir}
 Libs: -L\${libexecdir}
 EOF
 
+progress libdrm running
 meson setup --wipe "$BUILD_ROOT/libdrm" "$SOURCE_ROOT/libdrm" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
   -Damdgpu=enabled -Dintel=disabled -Dradeon=enabled -Dnouveau=disabled -Dvmwgfx=disabled
 ninja -C "$BUILD_ROOT/libdrm"
 DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/libdrm" install
 
+progress libva running
 meson setup --wipe "$BUILD_ROOT/libva" "$SOURCE_ROOT/libva" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
   -Ddisable_drm=false -Dwith_glx=no -Dwith_wayland=no -Dwith_x11=no
 ninja -C "$BUILD_ROOT/libva"
@@ -67,15 +70,18 @@ DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/libva" install
 # ocl-icd is the generic OpenCL dispatch loader.  Mesa's Clover build
 # provides an ICD, but FFmpeg's tonemap_opencl needs this loader to discover
 # the packaged mesa.icd file through OCL_ICD_VENDORS.
+progress mesa-prereqs running
 OCL_ICD_BUILD="$BUILD_ROOT/ocl-icd"
-rm -rf "$OCL_ICD_BUILD"
-mkdir -p "$OCL_ICD_BUILD"
-pushd "$SOURCE_ROOT/ocl-icd" >/dev/null
+OCL_ICD_SOURCE="$BUILD_ROOT/sources/ocl-icd"
+rm -rf "$OCL_ICD_BUILD" "$OCL_ICD_SOURCE"
+mkdir -p "$OCL_ICD_BUILD" "$(dirname "$OCL_ICD_SOURCE")"
+cp -a "$SOURCE_ROOT/ocl-icd" "$OCL_ICD_SOURCE"
+pushd "$OCL_ICD_SOURCE" >/dev/null
 ./bootstrap
 popd >/dev/null
 pushd "$OCL_ICD_BUILD" >/dev/null
 CC=/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc \
-  "$SOURCE_ROOT/ocl-icd/configure" --build=x86_64-pc-linux-gnu --host=x86_64-pc-linux-gnu \
+  "$OCL_ICD_SOURCE/configure" --build=x86_64-pc-linux-gnu --host=x86_64-pc-linux-gnu \
     --prefix="$PREFIX"
 make -j"$(nproc)"
 DESTDIR="$STAGE" make install
@@ -111,7 +117,9 @@ DESTDIR="$STAGE" make -C libelf install
 install -Dm644 "$ELF_BUILD/config/libelf.pc" "$STAGE$PREFIX/lib/pkgconfig/libelf.pc"
 popd >/dev/null
 
+progress mesa running
 meson setup --wipe "$BUILD_ROOT/mesa" "$SOURCE_ROOT/mesa" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
+  --buildtype=release -Ddebug=false \
   -Dgallium-drivers=radeonsi -Dvulkan-drivers=amd -Dgallium-va=enabled -Dgallium-vdpau=disabled \
   -Dgallium-opencl=icd -Dplatforms=[] -Dglx=disabled -Dcpp_rtti=true -Dllvm=enabled -Dshared-llvm=enabled \
   -Dvideo-codecs=all
@@ -130,9 +138,10 @@ ln -sfn "libclang-cpp.so.${LLVM_ABI_VERSION}" "$STAGE$PREFIX/lib/libclang-cpp.so
 # global-library change and allowing the SPK to carry its own ABI-matched copy.
 export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc
 export RUSTFLAGS="-C link-arg=-Wl,-rpath,\$ORIGIN/../lib"
+progress amdgpu_top running
 pushd "$SOURCE_ROOT/amdgpu_top" >/dev/null
-cargo build --release --target x86_64-unknown-linux-gnu --no-default-features --features dynamic_loading_package
-install -Dm755 target/x86_64-unknown-linux-gnu/release/amdgpu_top "$STAGE$PREFIX/bin/amdgpu_top"
+CARGO_TARGET_DIR="$BUILD_ROOT/cargo-target" cargo build --release --target x86_64-unknown-linux-gnu --no-default-features --features dynamic_loading_package
+install -Dm755 "$BUILD_ROOT/cargo-target/x86_64-unknown-linux-gnu/release/amdgpu_top" "$STAGE$PREFIX/bin/amdgpu_top"
 popd >/dev/null
 
 # DSM applies root ownership and setuid only to the explicitly declared
@@ -155,3 +164,4 @@ install -Dm755 "$ROOT/spk/package/bin/amdgpu-jellyfin-autoconfig.sh" "$STAGE$PRE
 mkdir -p "$STAGE$PREFIX/etc/vulkan/icd.d"
 cp "$ROOT/spk/package/etc/vulkan/icd.d/radeon_icd.x86_64.json" "$STAGE$PREFIX/etc/vulkan/icd.d/"
 "$ROOT/scripts/package-spk.sh" "$STAGE" "$PLATFORM" "$DSM_VERSION"
+progress complete success
