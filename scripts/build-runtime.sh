@@ -30,6 +30,7 @@ fi
 for required in libdrm libva zlib elfutils mesa ocl-icd amdgpu_top; do
   [[ -d $SOURCE_ROOT/$required ]] || { echo "missing source: $SOURCE_ROOT/$required" >&2; exit 1; }
 done
+"$ROOT/scripts/apply-rusticl-patches.sh" "$SOURCE_ROOT/mesa"
 
 export PATH="/root/.cargo/bin:/opt/${PLATFORM}/bin:$PATH"
 export PKG_CONFIG_PATH="$STAGE$PREFIX/lib/pkgconfig"
@@ -114,8 +115,8 @@ popd >/dev/null
 
 meson setup --wipe "$BUILD_ROOT/mesa" "$SOURCE_ROOT/mesa" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
   -Dgallium-drivers=radeonsi -Dvulkan-drivers=amd -Dgallium-va=enabled -Dgallium-vdpau=disabled \
-  -Dgallium-opencl=icd -Dplatforms=[] -Dglx=disabled -Dcpp_rtti=true -Dllvm=enabled -Dshared-llvm=enabled \
-  -Dvideo-codecs=all
+  -Dgallium-opencl=icd -Dgallium-rusticl=true -Dstatic-libclc=all -Dplatforms=[] -Dglx=disabled \
+  -Dcpp_rtti=true -Dllvm=enabled -Dshared-llvm=enabled -Dvideo-codecs=all
 ninja -C "$BUILD_ROOT/mesa"
 DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/mesa" install
 
@@ -126,6 +127,13 @@ ln -sfn "libLLVM.so.${LLVM_ABI_VERSION}" "$STAGE$PREFIX/lib/libLLVM.so"
 # Mesa's Clover OpenCL ICD links against Clang's monolithic C++ library.
 install -Dm755 "$LLVM_TARGET_ROOT/lib/libclang-cpp.so.${LLVM_ABI_VERSION}" "$STAGE$PREFIX/lib/libclang-cpp.so.${LLVM_ABI_VERSION}"
 ln -sfn "libclang-cpp.so.${LLVM_ABI_VERSION}" "$STAGE$PREFIX/lib/libclang-cpp.so"
+ln -sfn "libRusticlOpenCL.so.1.0.0" "$STAGE$PREFIX/lib/libRusticlOpenCL.so"
+mkdir -p "$STAGE$PREFIX/etc/OpenCL/rusticl-vendors"
+printf '%s\n' 'libRusticlOpenCL.so.1' > "$STAGE$PREFIX/etc/OpenCL/rusticl-vendors/rusticl.icd"
+if [[ -d "$LLVM_TARGET_ROOT/lib/clang/18/include" ]]; then
+  mkdir -p "$STAGE$PREFIX/lib/clang/18"
+  cp -a "$LLVM_TARGET_ROOT/lib/clang/18/include" "$STAGE$PREFIX/lib/clang/18/"
+fi
 
 # This upstream feature opens the staged libdrm at runtime, avoiding a DSM
 # global-library change and allowing the SPK to carry its own ABI-matched copy.
