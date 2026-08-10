@@ -4,13 +4,14 @@ set -euo pipefail
 
 ROOT=/work
 PLATFORM=${PLATFORM:-epyc7002}
+DSM_VERSION=${DSM_VERSION:-7.4}
 LLVM_VERSION=${LLVM_VERSION:-18.1.8}
 LLVM_ABI_VERSION=${LLVM_ABI_VERSION:-18.1}
 SOURCE="$ROOT/sources/llvm-project/llvm"
-BUILD="$ROOT/work/llvm-${PLATFORM}"
+BUILD="$ROOT/work/llvm-${PLATFORM}-${DSM_VERSION}"
 TOOLCHAIN=/opt/${PLATFORM}/bin
 
-[[ $PLATFORM == epyc7002 ]] || { echo "unsupported LLVM target: $PLATFORM" >&2; exit 2; }
+[[ $PLATFORM == epyc7002 && ( $DSM_VERSION == 7.1 || $DSM_VERSION == 7.4 ) ]] || { echo "unsupported LLVM target profile: ${PLATFORM} DSM ${DSM_VERSION}" >&2; exit 2; }
 [[ -d $SOURCE && -d "$ROOT/sources/llvm-project/clang" ]] || {
   echo "llvm-project source (including clang) is required" >&2; exit 1;
 }

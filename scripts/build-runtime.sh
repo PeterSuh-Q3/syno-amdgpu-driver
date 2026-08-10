@@ -13,8 +13,9 @@ CROSS_FILE=$ROOT/build/${PLATFORM}-${DSM_VERSION}.ini
 [[ $PLATFORM == epyc7002 && ( $DSM_VERSION == 7.1 || $DSM_VERSION == 7.4 ) ]] || { echo "unsupported profile" >&2; exit 2; }
 [[ -x /opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc ]] || { echo "Synology toolchain missing" >&2; exit 1; }
 [[ -x "$ROOT/scripts/llvm-config-${PLATFORM}.sh" ]] || { echo "Missing LLVM config wrapper for ${PLATFORM}." >&2; exit 1; }
-[[ -f "$ROOT/work/llvm-${PLATFORM}/lib/libLLVM.so.${LLVM_VERSION:-18.1}" ]] || { echo "Missing target libLLVM build." >&2; exit 1; }
-[[ -f "$ROOT/work/llvm-${PLATFORM}/lib/libclangBasic.a" ]] || { echo "Missing target Clang libraries for Clover OpenCL." >&2; exit 1; }
+LLVM_TARGET_ROOT=${LLVM_TARGET_ROOT:-$ROOT/work/llvm-${PLATFORM}-${DSM_VERSION}}
+[[ -f "$LLVM_TARGET_ROOT/lib/libLLVM.so.${LLVM_VERSION:-18.1}" ]] || { echo "Missing target libLLVM build for ${PLATFORM} DSM ${DSM_VERSION}." >&2; exit 1; }
+[[ -f "$LLVM_TARGET_ROOT/lib/libclangBasic.a" ]] || { echo "Missing target Clang libraries for Clover OpenCL." >&2; exit 1; }
 command -v meson >/dev/null
 command -v ninja >/dev/null
 command -v cargo >/dev/null
@@ -36,7 +37,7 @@ export PKG_CONFIG_PATH="$STAGE$PREFIX/lib/pkgconfig"
 # build (notably spirv-tools, whose headers are not in the target sysroot).
 export PKG_CONFIG_LIBDIR="$STAGE$PREFIX/lib/pkgconfig"
 export PKG_CONFIG_SYSROOT_DIR="$STAGE"
-export LLVM_TARGET_ROOT="$ROOT/work/llvm-${PLATFORM}"
+export LLVM_TARGET_ROOT
 LLVM_ABI_VERSION=${LLVM_ABI_VERSION:-18.1}
 
 # Clover's OpenCL compiler consumes libclc bitcode at build time and the

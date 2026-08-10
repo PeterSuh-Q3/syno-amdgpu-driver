@@ -16,6 +16,7 @@ docker info >/dev/null 2>&1 || SUDO=(sudo)
 "${SUDO[@]}" docker run --rm -t -u 0 \
   -v "$ROOT:/work" \
   -e PLATFORM -e DSM_VERSION \
+  -e LLVM_TARGET_ROOT="${LLVM_TARGET_ROOT:-}" \
   -e LLVM_CONFIG="${LLVM_CONFIG:-}" \
   "$BUILDER_IMAGE" \
   bash /work/scripts/build-runtime.sh
