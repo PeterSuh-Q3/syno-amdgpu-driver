@@ -16,8 +16,11 @@ COMPILE_JOBS=${COMPILE_JOBS:-$(( $(nproc) / BUILD_JOBS ))}
 export COMPILE_JOBS
 
 declare -a KEYS=() PIDS=()
-while IFS=$'\t' read -r platform dsm _; do
+# Shell's default IFS deliberately accepts either tabs or spaces.  This keeps
+# ALL-PLATFORMS compatible with hand-edited lists and mshell-style files.
+while read -r platform dsm _; do
   [[ -z ${platform:-} || $platform == \#* ]] && continue
+  [[ -n ${dsm:-} ]] || { echo "Invalid platform entry (missing DSM version): $platform" >&2; exit 2; }
   KEYS+=("${platform}-${dsm}")
 done < "$PLATFORMS_FILE"
 [[ ${#KEYS[@]} -gt 0 ]] || { echo 'No platforms selected' >&2; exit 2; }
