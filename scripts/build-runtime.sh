@@ -10,7 +10,7 @@ SOURCE_ROOT=$ROOT/sources
 STAGE=$BUILD_ROOT/stage
 CROSS_FILE=$ROOT/build/${PLATFORM}-${DSM_VERSION}.ini
 
-[[ $PLATFORM == epyc7002 && $DSM_VERSION == 7.4 ]] || { echo "unsupported profile" >&2; exit 2; }
+[[ $PLATFORM == epyc7002 && ( $DSM_VERSION == 7.1 || $DSM_VERSION == 7.4 ) ]] || { echo "unsupported profile" >&2; exit 2; }
 [[ -x /opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc ]] || { echo "Synology toolchain missing" >&2; exit 1; }
 [[ -x "$ROOT/scripts/llvm-config-${PLATFORM}.sh" ]] || { echo "Missing LLVM config wrapper for ${PLATFORM}." >&2; exit 1; }
 [[ -f "$ROOT/work/llvm-${PLATFORM}/lib/libLLVM.so.${LLVM_VERSION:-18.1}" ]] || { echo "Missing target libLLVM build." >&2; exit 1; }

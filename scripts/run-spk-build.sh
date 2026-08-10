@@ -6,8 +6,8 @@ PLATFORM=${2:-epyc7002}
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 BUILDER_IMAGE=${BUILDER_IMAGE:-syno-amdgpu-builder:${DSM_VERSION}}
 
-if [[ $DSM_VERSION != 7.4 || $PLATFORM != epyc7002 ]]; then
-  echo "This initial build profile only supports DSM 7.4 epyc7002." >&2
+if [[ $PLATFORM != epyc7002 || ( $DSM_VERSION != 7.1 && $DSM_VERSION != 7.4 ) ]]; then
+  echo "Supported profiles: epyc7002 DSM 7.1 and 7.4." >&2
   exit 2
 fi
 

@@ -9,10 +9,11 @@ PACKAGE=syno-amdgpu-runtime
 OUT=$ROOT/dist
 ASSEMBLY=$ROOT/work/spk-${PLATFORM}-${DSM_VERSION}
 
-[[ $PLATFORM == epyc7002 && $DSM_VERSION == 7.4 ]] || { echo "unsupported profile" >&2; exit 2; }
+[[ $PLATFORM == epyc7002 && ( $DSM_VERSION == 7.1 || $DSM_VERSION == 7.4 ) ]] || { echo "unsupported profile" >&2; exit 2; }
 rm -rf "$ASSEMBLY"
 mkdir -p "$ASSEMBLY/scripts" "$ASSEMBLY/conf"
 cp "$ROOT/spk/INFO" "$ASSEMBLY/INFO"
+sed -i "s/^os_min_ver=.*/os_min_ver=\"$DSM_VERSION-00000\"/" "$ASSEMBLY/INFO"
 cp "$ROOT/spk/scripts/"* "$ASSEMBLY/scripts/"
 cp "$ROOT/spk/conf/"* "$ASSEMBLY/conf/"
 for icon in PACKAGE_ICON.PNG PACKAGE_ICON_256.PNG; do
