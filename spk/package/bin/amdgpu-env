@@ -9,5 +9,6 @@ export LD_PRELOAD="$ROOT/lib/libdrm.so.2:$ROOT/lib/libva.so.2:$ROOT/lib/libva-dr
 export LIBVA_DRIVERS_PATH="$ROOT/lib/dri"
 export LIBVA_DRIVER_NAME=radeonsi
 export VK_ICD_FILENAMES="$ROOT/etc/vulkan/icd.d/radeon_icd.x86_64.json"
-export OCL_ICD_VENDORS="$ROOT/etc/OpenCL/vendors"
+export RUSTICL_ENABLE="radeonsi"
+export OCL_ICD_VENDORS="/var/packages/syno-amdgpu-runtime/target/etc/OpenCL/rusticl-vendors"
 exec "$@"
