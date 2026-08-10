@@ -3,6 +3,8 @@
 `build/ALL-PLATFORMS`에 등록된 DSM 7.4 x86_64 플랫폼을 대상으로 한다.
 개별 결과물은 `dist/syno-amdgpu-runtime-7.4-<platform>.spk`이다.
 
+플랫폼별 Meson 크로스 파일은 Git에서 개별 관리하지 않는다. `scripts/generate-cross-file.sh`가 목록의 플랫폼명에서 `/opt/<platform>/bin` 경로를 사용해 `work/profiles/<platform>-<dsm>.ini`를 자동 생성한다. 새 플랫폼은 `ALL-PLATFORMS`에만 추가한다.
+
 ## Build container prerequisites
 
 기존 NVIDIA 빌드와 동일한 `dante90/syno-compiler:7.4` 컨테이너를 사용한다. 컨테이너에 아래 도구와 DSM 대상 LLVM이 있어야 한다.
