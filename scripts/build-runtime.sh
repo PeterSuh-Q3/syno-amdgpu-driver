@@ -30,6 +30,7 @@ fi
 for required in libdrm libva zlib elfutils mesa ocl-icd amdgpu_top; do
   [[ -d $SOURCE_ROOT/$required ]] || { echo "missing source: $SOURCE_ROOT/$required" >&2; exit 1; }
 done
+[[ -d $SOURCE_ROOT/spirv-llvm-translator ]] || { echo "missing source: $SOURCE_ROOT/spirv-llvm-translator" >&2; exit 1; }
 "$ROOT/scripts/apply-rusticl-patches.sh" "$SOURCE_ROOT/mesa"
 
 export PATH="/root/.cargo/bin:/opt/${PLATFORM}/bin:$PATH"
@@ -112,6 +113,20 @@ DESTDIR="$STAGE" make -C libelf install
 # Mesa discovers libelf through this file during its cross configuration.
 install -Dm644 "$ELF_BUILD/config/libelf.pc" "$STAGE$PREFIX/lib/pkgconfig/libelf.pc"
 popd >/dev/null
+
+# Rusticl converts OpenCL IL through LLVMSPIRVLib.  It must be cross-built
+# against the DSM LLVM produced above and installed into the target staging
+# prefix before Mesa's pkg-config based configuration is evaluated.
+SPIRV_LLVM_BUILD="$BUILD_ROOT/spirv-llvm"
+cmake -S "$SOURCE_ROOT/spirv-llvm-translator" -B "$SPIRV_LLVM_BUILD" -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_NAME=Linux \
+  -DCMAKE_C_COMPILER="/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc" \
+  -DCMAKE_CXX_COMPILER="/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-g++" \
+  -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+  -DLLVM_DIR="$LLVM_TARGET_ROOT/lib/cmake/llvm" \
+  -DLLVM_SPIRV_INCLUDE_TESTS=OFF
+ninja -C "$SPIRV_LLVM_BUILD"
+DESTDIR="$STAGE" ninja -C "$SPIRV_LLVM_BUILD" install
 
 meson setup --wipe "$BUILD_ROOT/mesa" "$SOURCE_ROOT/mesa" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
   -Dgallium-drivers=radeonsi -Dvulkan-drivers=amd -Dgallium-va=enabled -Dgallium-vdpau=disabled \
