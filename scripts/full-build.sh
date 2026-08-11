@@ -16,6 +16,17 @@ COMPILE_JOBS=${COMPILE_JOBS:-$(( $(nproc) / BUILD_JOBS ))}
 export COMPILE_JOBS
 
 declare -a KEYS=() PIDS=()
+
+# Keep platform builders in their own process groups.  This prevents an
+# interrupted dashboard (Ctrl-C/OOM) from leaving orphaned Ninja jobs that
+# would be counted outside BUILD_JOBS on the next invocation.
+cleanup() {
+  local pid
+  for pid in "${PIDS[@]:-}"; do
+    kill -TERM -- "-$pid" 2>/dev/null || true
+  done
+}
+trap cleanup INT TERM EXIT
 # Shell's default IFS deliberately accepts either tabs or spaces.  This keeps
 # ALL-PLATFORMS compatible with hand-edited lists and mshell-style files.
 while read -r platform dsm _; do
@@ -46,7 +57,7 @@ launch() {
   local key=$1 platform=${1%-*} dsm=${1##*-}
   : > "$LOG_DIR/$key.log"
   STATUS_FILE="$STATE_DIR/$key.status" LOG_FILE="$LOG_DIR/$key.log" \
-    "$ROOT/scripts/build-platform.sh" "$platform" "$dsm" &
+    setsid "$ROOT/scripts/build-platform.sh" "$platform" "$dsm" &
   PIDS+=("$!")
 }
 
