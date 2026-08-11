@@ -17,11 +17,13 @@ trap 'status failed failed' ERR
 
 "$ROOT/scripts/generate-cross-file.sh" "$PLATFORM" "$DSM_VERSION" >/dev/null
 status llvm running
-docker run --rm -u 0 -v "$ROOT:/work" -e PLATFORM -e DSM_VERSION \
-  -e COMPILE_JOBS -e STATUS_FILE="/work/work/status/${KEY}.status" "$IMAGE" \
+docker run --rm -u 0 -v "$ROOT:/work" \
+  -e "PLATFORM=$PLATFORM" -e "DSM_VERSION=$DSM_VERSION" \
+  -e "COMPILE_JOBS=$COMPILE_JOBS" -e STATUS_FILE="/work/work/status/${KEY}.status" "$IMAGE" \
   bash /work/scripts/build-target-llvm.sh >> "$LOG_FILE" 2>&1
 status runtime running
-docker run --rm -u 0 -v "$ROOT:/work" -e PLATFORM -e DSM_VERSION \
-  -e COMPILE_JOBS -e STATUS_FILE="/work/work/status/${KEY}.status" "$IMAGE" \
+docker run --rm -u 0 -v "$ROOT:/work" \
+  -e "PLATFORM=$PLATFORM" -e "DSM_VERSION=$DSM_VERSION" \
+  -e "COMPILE_JOBS=$COMPILE_JOBS" -e STATUS_FILE="/work/work/status/${KEY}.status" "$IMAGE" \
   bash /work/scripts/build-runtime.sh >> "$LOG_FILE" 2>&1
 status complete success
