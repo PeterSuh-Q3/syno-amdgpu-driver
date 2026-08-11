@@ -20,7 +20,17 @@ command -v meson >/dev/null
 command -v ninja >/dev/null
 command -v cargo >/dev/null
 mkdir -p "$BUILD_ROOT" "$SOURCE_ROOT" "$STAGE"
-progress() { [[ -n ${STATUS_FILE:-} ]] && printf '%s\t%s\t%s\n' "$1" "$2" "$(date +%s)" > "$STATUS_FILE"; }
+progress() {
+  [[ -n ${STATUS_FILE:-} ]] || return 0
+  local phase="$1"
+  case "$phase" in
+    libdrm) phase='2/5 libdrm' ;;
+    libva) phase='3/5 libva' ;;
+    mesa-prereqs|mesa) phase='4/5 mesa' ;;
+    amdgpu_top) phase='5/5 amdgpu_top' ;;
+  esac
+  printf '%s\t%s\t%s\n' "$phase" "$2" "$(date +%s)" > "$STATUS_FILE"
+}
 
 # Populate sources/ with the exact archives in build/versions.env, unpacked as
 # libdrm/, libva/, mesa/, and amdgpu_top/. Release builds require locked hashes.
