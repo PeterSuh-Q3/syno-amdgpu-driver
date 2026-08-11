@@ -29,7 +29,7 @@ progress() {
     mesa-prereqs|mesa) phase='4/5 mesa' ;;
     amdgpu_top) phase='5/5 amdgpu_top' ;;
   esac
-  printf '%s\t%s\t%s\n' "$phase" "$2" "$(date +%s)" > "$STATUS_FILE"
+  printf '%s\t%s\t%s\t%s\n' "$phase" "$2" "${3:-}" "$(date +%s)" > "$STATUS_FILE"
 }
 
 # Populate sources/ with the exact archives in build/versions.env, unpacked as
@@ -67,22 +67,24 @@ Cflags: -I\${includedir}
 Libs: -L\${libexecdir}
 EOF
 
-progress libdrm running
+progress libdrm running configure
 meson setup --wipe "$BUILD_ROOT/libdrm" "$SOURCE_ROOT/libdrm" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
   -Damdgpu=enabled -Dintel=disabled -Dradeon=enabled -Dnouveau=disabled -Dvmwgfx=disabled
 ninja -C "$BUILD_ROOT/libdrm" -j"$COMPILE_JOBS"
 DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/libdrm" install
+progress libdrm running install
 
-progress libva running
+progress libva running configure
 meson setup --wipe "$BUILD_ROOT/libva" "$SOURCE_ROOT/libva" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
   -Ddisable_drm=false -Dwith_glx=no -Dwith_wayland=no -Dwith_x11=no
 ninja -C "$BUILD_ROOT/libva" -j"$COMPILE_JOBS"
 DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/libva" install
+progress libva running install
 
 # ocl-icd is the generic OpenCL dispatch loader.  Mesa's Clover build
 # provides an ICD, but FFmpeg's tonemap_opencl needs this loader to discover
 # the packaged mesa.icd file through OCL_ICD_VENDORS.
-progress mesa-prereqs running
+progress mesa-prereqs running ocl-icd
 OCL_ICD_BUILD="$BUILD_ROOT/ocl-icd"
 OCL_ICD_SOURCE="$BUILD_ROOT/sources/ocl-icd"
 rm -rf "$OCL_ICD_BUILD" "$OCL_ICD_SOURCE"
@@ -100,6 +102,7 @@ DESTDIR="$STAGE" make install
 popd >/dev/null
 
 ZLIB_BUILD="$BUILD_ROOT/zlib"
+progress mesa-prereqs running zlib
 rm -rf "$ZLIB_BUILD"
 mkdir -p "$ZLIB_BUILD"
 pushd "$ZLIB_BUILD" >/dev/null
@@ -112,6 +115,7 @@ popd >/dev/null
 # radeonsi requires libelf.  Build only elfutils' libelf component so the
 # runtime stays focused on GPU userspace rather than the full elfutils suite.
 ELF_BUILD="$BUILD_ROOT/elfutils"
+progress mesa-prereqs running elfutils
 rm -rf "$ELF_BUILD"
 mkdir -p "$ELF_BUILD"
 pushd "$ELF_BUILD" >/dev/null
@@ -130,6 +134,7 @@ install -Dm644 "$ELF_BUILD/config/libelf.pc" "$STAGE$PREFIX/lib/pkgconfig/libelf
 popd >/dev/null
 
 SPIRV_TOOLS_BUILD="$BUILD_ROOT/spirv-tools"
+progress mesa-prereqs running SPIRV-Tools
 cmake -S "$SOURCE_ROOT/SPIRV-Tools" -B "$SPIRV_TOOLS_BUILD" -G Ninja \
   -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_NAME=Linux \
   -DCMAKE_C_COMPILER="/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc" \
@@ -140,6 +145,7 @@ ninja -C "$SPIRV_TOOLS_BUILD" -j"$COMPILE_JOBS"
 DESTDIR="$STAGE" ninja -C "$SPIRV_TOOLS_BUILD" install
 
 SPIRV_LLVM_BUILD="$BUILD_ROOT/spirv-llvm"
+progress mesa-prereqs running LLVMSPIRVLib
 cmake -S "$SOURCE_ROOT/spirv-llvm-translator" -B "$SPIRV_LLVM_BUILD" -G Ninja \
   -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_NAME=Linux \
   -DCMAKE_C_COMPILER="/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc" \
@@ -149,7 +155,7 @@ cmake -S "$SOURCE_ROOT/spirv-llvm-translator" -B "$SPIRV_LLVM_BUILD" -G Ninja \
 ninja -C "$SPIRV_LLVM_BUILD" -j"$COMPILE_JOBS"
 DESTDIR="$STAGE" ninja -C "$SPIRV_LLVM_BUILD" install
 
-progress mesa running
+progress mesa running configure
 meson setup --wipe "$BUILD_ROOT/mesa" "$SOURCE_ROOT/mesa" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
   --buildtype=release -Ddebug=false \
   -Dgallium-drivers=radeonsi -Dvulkan-drivers=amd -Dgallium-va=enabled -Dgallium-vdpau=disabled \
@@ -157,6 +163,7 @@ meson setup --wipe "$BUILD_ROOT/mesa" "$SOURCE_ROOT/mesa" --cross-file "$CROSS_F
   -Dcpp_rtti=true -Dllvm=enabled -Dshared-llvm=enabled -Dvideo-codecs=all
 ninja -C "$BUILD_ROOT/mesa" -j"$COMPILE_JOBS"
 DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/mesa" install
+progress mesa running install
 
 # Mesa and its drivers link to the target ABI's shared LLVM.  Ship it inside
 # the package rather than relying on an absent DSM system LLVM installation.
@@ -179,10 +186,11 @@ fi
 # global-library change and allowing the SPK to carry its own ABI-matched copy.
 export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc
 export RUSTFLAGS="-C link-arg=-Wl,-rpath,\$ORIGIN/../lib"
-progress amdgpu_top running
+progress amdgpu_top running cargo
 pushd "$SOURCE_ROOT/amdgpu_top" >/dev/null
 CARGO_BUILD_JOBS="$COMPILE_JOBS" CARGO_TARGET_DIR="$BUILD_ROOT/cargo-target" cargo build --release --target x86_64-unknown-linux-gnu --no-default-features --features dynamic_loading_package
 install -Dm755 "$BUILD_ROOT/cargo-target/x86_64-unknown-linux-gnu/release/amdgpu_top" "$STAGE$PREFIX/bin/amdgpu_top"
+progress amdgpu_top running package
 popd >/dev/null
 
 # DSM applies root ownership and setuid only to the explicitly declared

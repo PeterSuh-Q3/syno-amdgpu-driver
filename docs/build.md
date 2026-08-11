@@ -42,6 +42,6 @@ sources/spirv-llvm-translator
 PLATFORMS_FILE=build/ALL-PLATFORMS BUILD_JOBS=2 ./scripts/full-build.sh
 ```
 
-빌드 중에는 플랫폼별 `llvm → libdrm → libva → mesa-prereqs → mesa → amdgpu_top → complete` 단계와 Ninja 카운트가 실시간 표시된다. 세부 로그는 `logs/`, 상태 파일은 `work/status/`에 남는다.
+빌드 중에는 플랫폼별 주 단계와 `DETAIL`이 실시간 표시된다. 예를 들어 `4/5 mesa | running | SPIRV-Tools`처럼 표시되며, Ninja 카운트도 함께 보인다. 세부 로그는 `logs/`, 상태 파일은 `work/status/`에 남는다.
 
 Mesa와 `amdgpu_top`은 패키지 내부의 라이브러리를 찾도록 RPATH/환경 래퍼를 사용한다. DSM의 `/usr/lib`를 수정하거나 덮어쓰지 않는다.
