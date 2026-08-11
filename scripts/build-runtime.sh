@@ -38,9 +38,10 @@ if [[ ${RELEASE:-0} == 1 ]] && grep -q ' TODO$' "$ROOT/build/sources.lock"; then
   echo "sources.lock is incomplete; refusing a release build" >&2
   exit 1
 fi
-for required in libdrm libva zlib elfutils mesa ocl-icd amdgpu_top; do
+for required in libdrm libva zlib elfutils mesa ocl-icd amdgpu_top SPIRV-Tools spirv-llvm-translator; do
   [[ -d $SOURCE_ROOT/$required ]] || { echo "missing source: $SOURCE_ROOT/$required" >&2; exit 1; }
 done
+"$ROOT/scripts/apply-rusticl-patches.sh" "$SOURCE_ROOT/mesa"
 
 export PATH="/root/.cargo/bin:/opt/${PLATFORM}/bin:$PATH"
 export PKG_CONFIG_PATH="$STAGE$PREFIX/lib/pkgconfig"
@@ -128,12 +129,32 @@ DESTDIR="$STAGE" make -C libelf install
 install -Dm644 "$ELF_BUILD/config/libelf.pc" "$STAGE$PREFIX/lib/pkgconfig/libelf.pc"
 popd >/dev/null
 
+SPIRV_TOOLS_BUILD="$BUILD_ROOT/spirv-tools"
+cmake -S "$SOURCE_ROOT/SPIRV-Tools" -B "$SPIRV_TOOLS_BUILD" -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_NAME=Linux \
+  -DCMAKE_C_COMPILER="/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc" \
+  -DCMAKE_CXX_COMPILER="/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-g++" \
+  -DCMAKE_INSTALL_PREFIX="$PREFIX" -DSPIRV_WERROR=OFF \
+  -DSPIRV_TOOLS_BUILD_STATIC=ON
+ninja -C "$SPIRV_TOOLS_BUILD" -j"$COMPILE_JOBS"
+DESTDIR="$STAGE" ninja -C "$SPIRV_TOOLS_BUILD" install
+
+SPIRV_LLVM_BUILD="$BUILD_ROOT/spirv-llvm"
+cmake -S "$SOURCE_ROOT/spirv-llvm-translator" -B "$SPIRV_LLVM_BUILD" -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_NAME=Linux \
+  -DCMAKE_C_COMPILER="/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc" \
+  -DCMAKE_CXX_COMPILER="/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-g++" \
+  -DCMAKE_INSTALL_PREFIX="$PREFIX" -DLLVM_DIR="$LLVM_TARGET_ROOT/lib/cmake/llvm" \
+  -DLLVM_SPIRV_INCLUDE_TESTS=OFF
+ninja -C "$SPIRV_LLVM_BUILD" -j"$COMPILE_JOBS"
+DESTDIR="$STAGE" ninja -C "$SPIRV_LLVM_BUILD" install
+
 progress mesa running
 meson setup --wipe "$BUILD_ROOT/mesa" "$SOURCE_ROOT/mesa" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
   --buildtype=release -Ddebug=false \
   -Dgallium-drivers=radeonsi -Dvulkan-drivers=amd -Dgallium-va=enabled -Dgallium-vdpau=disabled \
-  -Dgallium-opencl=icd -Dplatforms=[] -Dglx=disabled -Dcpp_rtti=true -Dllvm=enabled -Dshared-llvm=enabled \
-  -Dvideo-codecs=all
+  -Dgallium-opencl=icd -Dgallium-rusticl=true -Dstatic-libclc=all -Dplatforms=[] -Dglx=disabled \
+  -Dcpp_rtti=true -Dllvm=enabled -Dshared-llvm=enabled -Dvideo-codecs=all
 ninja -C "$BUILD_ROOT/mesa" -j"$COMPILE_JOBS"
 DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/mesa" install
 
@@ -144,6 +165,15 @@ ln -sfn "libLLVM.so.${LLVM_ABI_VERSION}" "$STAGE$PREFIX/lib/libLLVM.so"
 # Mesa's Clover OpenCL ICD links against Clang's monolithic C++ library.
 install -Dm755 "$LLVM_TARGET_ROOT/lib/libclang-cpp.so.${LLVM_ABI_VERSION}" "$STAGE$PREFIX/lib/libclang-cpp.so.${LLVM_ABI_VERSION}"
 ln -sfn "libclang-cpp.so.${LLVM_ABI_VERSION}" "$STAGE$PREFIX/lib/libclang-cpp.so"
+test -f "$STAGE$PREFIX/lib/libRusticlOpenCL.so.1.0.0" || { echo "Rusticl OpenCL library was not installed" >&2; exit 1; }
+ln -sfn "libRusticlOpenCL.so.1.0.0" "$STAGE$PREFIX/lib/libRusticlOpenCL.so"
+ln -sfn "libRusticlOpenCL.so.1.0.0" "$STAGE$PREFIX/lib/libRusticlOpenCL.so.1"
+mkdir -p "$STAGE$PREFIX/etc/OpenCL/rusticl-vendors"
+printf '%s\n' 'libRusticlOpenCL.so.1' > "$STAGE$PREFIX/etc/OpenCL/rusticl-vendors/rusticl.icd"
+if [[ -d "$LLVM_TARGET_ROOT/lib/clang/18/include" ]]; then
+  mkdir -p "$STAGE$PREFIX/lib/clang/18"
+  cp -a "$LLVM_TARGET_ROOT/lib/clang/18/include" "$STAGE$PREFIX/lib/clang/18/"
+fi
 
 # This upstream feature opens the staged libdrm at runtime, avoiding a DSM
 # global-library change and allowing the SPK to carry its own ABI-matched copy.

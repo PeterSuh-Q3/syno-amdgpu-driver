@@ -24,6 +24,8 @@ sources/libdrm
 sources/libva
 sources/mesa
 sources/amdgpu_top
+sources/SPIRV-Tools
+sources/spirv-llvm-translator
 ```
 
 각 archive의 SHA-256을 `build/sources.lock`에 기록한다. `RELEASE=1` 빌드는 `TODO`가 하나라도 있으면 중단한다.
