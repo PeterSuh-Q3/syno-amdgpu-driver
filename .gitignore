@@ -1,6 +1,8 @@
 .DS_Store
-build/
-dist/
-work/
+# Build metadata and platform selections under build/ are versioned.
+# Ignore only generated outputs and fetched source trees.
+/dist/
+/work/
+/logs/
+/sources/
 *.spk
-sources/
