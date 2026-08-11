@@ -36,6 +36,13 @@ while read -r platform dsm _; do
 done < "$PLATFORMS_FILE"
 [[ ${#KEYS[@]} -gt 0 ]] || { echo 'No platforms selected' >&2; exit 2; }
 
+# A previous interrupted run may have left terminal status files behind.
+# Rebuild invocation owns the dashboard, so start every listed platform as
+# queued and avoid displaying stale progress from an older run.
+for key in "${KEYS[@]}"; do
+  rm -f "$STATE_DIR/$key.status"
+done
+
 for dsm in $(printf '%s\n' "${KEYS[@]}" | awk -F- '{print $NF}' | sort -u); do
   "$ROOT/scripts/build-builder.sh" "$dsm"
 done
@@ -48,7 +55,7 @@ render() {
     local phase=queued state=waiting detail='-' count='-'
     if [[ -f "$STATE_DIR/$key.status" ]]; then IFS=$'\t' read -r phase state detail _ < "$STATE_DIR/$key.status" || true; fi
     local log="$LOG_DIR/$key.log"
-    [[ -f $log ]] && count=$(grep -Eo '\[[0-9]+/[0-9]+\]' "$log" | tail -1 || true)
+    [[ -f "$STATE_DIR/$key.status" && -f $log ]] && count=$(grep -Eo '\[[0-9]+/[0-9]+\]' "$log" | tail -1 || true)
     printf '%-22s %-16s %-18s %-10s %s\n' "$key" "$phase" "$detail" "$state" "${count:--}"
   done
 }
