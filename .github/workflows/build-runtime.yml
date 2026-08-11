@@ -57,14 +57,33 @@ jobs:
           nproc
           free -h
           df -h
-          docker version
 
-      - name: Build DSM runtime builder image
-        run: ./scripts/build-builder.sh '${{ inputs.dsm_version }}'
+      - name: Install host build dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            autoconf automake bison build-essential ca-certificates clang cmake curl \
+            flex git glslang-tools libclang-dev libclc-14 libclc-14-dev libtool meson ninja-build \
+            pkg-config python3 python3-mako python3-pip python3-yaml ruby xz-utils
+          python3 -m pip install --break-system-packages 'meson==1.5.2'
+          rustup target add x86_64-unknown-linux-gnu
+          cargo install --locked bindgen-cli
+
+      - name: Download selected Synology toolkit
+        run: |
+          ./scripts/provision-syno-toolchain.sh '${{ matrix.platform }}' '${{ inputs.dsm_version }}'
+
+      - name: Fetch pinned upstream sources
+        run: ./scripts/fetch-sources.sh
 
       - name: Build runtime and SPK
         run: |
-          COMPILE_JOBS="$(nproc)" ./scripts/build-platform.sh '${{ matrix.platform }}' '${{ inputs.dsm_version }}'
+          TOOLCHAIN_BIN="$GITHUB_WORKSPACE/work/toolchains/${{ matrix.platform }}/bin" \
+          BUILD_BACKEND=host \
+          COMPILE_JOBS="$(nproc)" \
+          ./scripts/build-platform.sh '${{ matrix.platform }}' '${{ inputs.dsm_version }}'
 
       - name: Show result metadata
         if: always()

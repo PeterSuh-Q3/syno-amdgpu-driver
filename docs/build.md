@@ -47,11 +47,13 @@ PLATFORMS_FILE=build/ALL-PLATFORMS BUILD_JOBS=2 ./scripts/full-build.sh
 Mesa와 `amdgpu_top`은 패키지 내부의 라이브러리를 찾도록 RPATH/환경 래퍼를 사용한다. DSM의 `/usr/lib`를 수정하거나 덮어쓰지 않는다.
 ## GitHub Actions build
 
-The **Build DSM AMDGPU Runtime** workflow reproduces the Docker-based VM build
-on a GitHub-hosted Ubuntu runner.  Open **Actions**, select the workflow, click
-**Run workflow**, then select either one platform or `all`.
+The **Build DSM AMDGPU Runtime** workflow runs on a GitHub-hosted Ubuntu runner.
+Open **Actions**, select the workflow, click **Run workflow**, then select either
+one platform or `all`.
 
-Each selected platform receives its own runner and builds the same
-`syno-amdgpu-builder:7.4` image used by the VM.  The workflow uploads the SPK
-and build logs as separate artifacts for 14 days.  It is intentionally manual
-only because a full Mesa/LLVM build consumes substantial runner time.
+Each selected platform receives its own runner.  It uses Synology's official
+`pkgscripts-ng` `EnvDeploy` mechanism to download only that platform's DSM
+toolkit, then builds directly on the runner; it does not pull or unpack the
+all-platform DockerHub compiler image. The workflow uploads the SPK and build
+logs as separate artifacts for 14 days. It is intentionally manual-only because
+a full Mesa/LLVM build still consumes substantial runner time and disk space.

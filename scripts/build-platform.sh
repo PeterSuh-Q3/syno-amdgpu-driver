@@ -15,16 +15,30 @@ mkdir -p "$(dirname "$STATUS_FILE")" "$(dirname "$LOG_FILE")"
 status() { printf '%s\t%s\t%s\t%s\n' "$1" "$2" "${3:-}" "$(date +%s)" > "$STATUS_FILE"; }
 trap 'status failed failed' ERR
 
-"$ROOT/scripts/generate-cross-file.sh" "$PLATFORM" "$DSM_VERSION" >/dev/null
+TOOLCHAIN_BIN=${TOOLCHAIN_BIN:-"/opt/${PLATFORM}/bin"} \
+  "$ROOT/scripts/generate-cross-file.sh" "$PLATFORM" "$DSM_VERSION" >/dev/null
 status '1/5 llvm' running '1/3 configure'
 status '1/5 llvm' running '2/3 ninja'
-docker run --rm -u 0 -v "$ROOT:/work" \
-  -e "PLATFORM=$PLATFORM" -e "DSM_VERSION=$DSM_VERSION" \
-  -e "COMPILE_JOBS=$COMPILE_JOBS" -e STATUS_FILE="/work/work/status/${KEY}.status" "$IMAGE" \
-  bash /work/scripts/build-target-llvm.sh >> "$LOG_FILE" 2>&1
+if [[ ${BUILD_BACKEND:-docker} == host ]]; then
+  : "${TOOLCHAIN_BIN:?TOOLCHAIN_BIN is required for BUILD_BACKEND=host}"
+  ROOT="$ROOT" TOOLCHAIN_BIN="$TOOLCHAIN_BIN" PLATFORM="$PLATFORM" DSM_VERSION="$DSM_VERSION" \
+    COMPILE_JOBS="$COMPILE_JOBS" STATUS_FILE="$STATUS_FILE" \
+    bash "$ROOT/scripts/build-target-llvm.sh" >> "$LOG_FILE" 2>&1
+else
+  docker run --rm -u 0 -v "$ROOT:/work" \
+    -e "PLATFORM=$PLATFORM" -e "DSM_VERSION=$DSM_VERSION" \
+    -e "COMPILE_JOBS=$COMPILE_JOBS" -e STATUS_FILE="/work/work/status/${KEY}.status" "$IMAGE" \
+    bash /work/scripts/build-target-llvm.sh >> "$LOG_FILE" 2>&1
+fi
 status '1/5 llvm' running '3/3 verify'
-docker run --rm -u 0 -v "$ROOT:/work" \
-  -e "PLATFORM=$PLATFORM" -e "DSM_VERSION=$DSM_VERSION" \
-  -e "COMPILE_JOBS=$COMPILE_JOBS" -e STATUS_FILE="/work/work/status/${KEY}.status" "$IMAGE" \
-  bash /work/scripts/build-runtime.sh >> "$LOG_FILE" 2>&1
+if [[ ${BUILD_BACKEND:-docker} == host ]]; then
+  ROOT="$ROOT" TOOLCHAIN_BIN="$TOOLCHAIN_BIN" PLATFORM="$PLATFORM" DSM_VERSION="$DSM_VERSION" \
+    COMPILE_JOBS="$COMPILE_JOBS" STATUS_FILE="$STATUS_FILE" \
+    bash "$ROOT/scripts/build-runtime.sh" >> "$LOG_FILE" 2>&1
+else
+  docker run --rm -u 0 -v "$ROOT:/work" \
+    -e "PLATFORM=$PLATFORM" -e "DSM_VERSION=$DSM_VERSION" \
+    -e "COMPILE_JOBS=$COMPILE_JOBS" -e STATUS_FILE="/work/work/status/${KEY}.status" "$IMAGE" \
+    bash /work/scripts/build-runtime.sh >> "$LOG_FILE" 2>&1
+fi
 status complete success done

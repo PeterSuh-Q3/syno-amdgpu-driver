@@ -2,13 +2,13 @@
 # Build the DSM-ABI LLVM/Clang libraries used by radeonsi and Clover.
 set -euo pipefail
 
-ROOT=/work
+ROOT=${ROOT:-/work}
 PLATFORM=${PLATFORM:-epyc7002}
 LLVM_VERSION=${LLVM_VERSION:-18.1.8}
 LLVM_ABI_VERSION=${LLVM_ABI_VERSION:-18.1}
 SOURCE="$ROOT/sources/llvm-project/llvm"
 BUILD="$ROOT/work/llvm-${PLATFORM}"
-TOOLCHAIN=/opt/${PLATFORM}/bin
+TOOLCHAIN=${TOOLCHAIN_BIN:-/opt/${PLATFORM}/bin}
 COMPILE_JOBS=${COMPILE_JOBS:-$(nproc)}
 
 [[ -x "$TOOLCHAIN/x86_64-pc-linux-gnu-gcc" ]] || { echo "Synology toolchain missing for $PLATFORM" >&2; exit 2; }

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT=/work
+ROOT=${ROOT:-/work}
 PLATFORM=${PLATFORM:-epyc7002}
 DSM_VERSION=${DSM_VERSION:-7.4}
 PREFIX=/var/packages/syno-amdgpu-runtime/target
@@ -10,8 +10,9 @@ SOURCE_ROOT=$ROOT/sources
 STAGE=$BUILD_ROOT/stage
 CROSS_FILE=${CROSS_FILE:-$ROOT/work/profiles/${PLATFORM}-${DSM_VERSION}.ini}
 COMPILE_JOBS=${COMPILE_JOBS:-$(nproc)}
+TOOLCHAIN=${TOOLCHAIN_BIN:-/opt/${PLATFORM}/bin}
 
-[[ -x /opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc ]] || { echo "Synology toolchain missing" >&2; exit 1; }
+[[ -x $TOOLCHAIN/x86_64-pc-linux-gnu-gcc ]] || { echo "Synology toolchain missing" >&2; exit 1; }
 [[ -x "$ROOT/scripts/llvm-config-synology-x64.sh" ]] || { echo "Missing LLVM config wrapper." >&2; exit 1; }
 [[ -f "$CROSS_FILE" ]] || { echo "Missing cross file: $CROSS_FILE" >&2; exit 1; }
 [[ -f "$ROOT/work/llvm-${PLATFORM}/lib/libLLVM.so.${LLVM_VERSION:-18.1}" ]] || { echo "Missing target libLLVM build." >&2; exit 1; }
@@ -44,19 +45,25 @@ for required in libdrm libva zlib elfutils mesa ocl-icd amdgpu_top SPIRV-Tools s
 done
 "$ROOT/scripts/apply-rusticl-patches.sh" "$SOURCE_ROOT/mesa"
 
-export PATH="/root/.cargo/bin:/opt/${PLATFORM}/bin:$PATH"
+export PATH="$(dirname "$(command -v cargo)"):$TOOLCHAIN:$PATH"
 export PKG_CONFIG_PATH="$STAGE$PREFIX/lib/pkgconfig"
 # Do not let the Debian builder's host-only .pc files leak into a DSM target
 # build (notably spirv-tools, whose headers are not in the target sysroot).
 export PKG_CONFIG_LIBDIR="$STAGE$PREFIX/lib/pkgconfig"
 export PKG_CONFIG_SYSROOT_DIR="$STAGE"
 export LLVM_TARGET_ROOT="$ROOT/work/llvm-${PLATFORM}"
+export LLVM_SOURCE_ROOT="$SOURCE_ROOT/llvm-project/llvm"
 LLVM_ABI_VERSION=${LLVM_ABI_VERSION:-18.1}
 
 # Clover's OpenCL compiler consumes libclc bitcode at build time and the
 # resulting runtime loads the same files by its pkg-config libexec path.
 mkdir -p "$STAGE$PREFIX/lib/clc" "$STAGE$PREFIX/lib/pkgconfig"
-cp -a /usr/lib/clc/. "$STAGE$PREFIX/lib/clc/"
+LIBCLC_DIR=${LIBCLC_DIR:-/usr/lib/clc}
+if [[ ! -d "$LIBCLC_DIR" ]]; then
+  LIBCLC_DIR=$(find /usr/lib -type d -path '*/clc' -print -quit || true)
+fi
+[[ -n "$LIBCLC_DIR" && -d "$LIBCLC_DIR" ]] || { echo 'libclc runtime files are required' >&2; exit 2; }
+cp -a "$LIBCLC_DIR/." "$STAGE$PREFIX/lib/clc/"
 cat > "$STAGE$PREFIX/lib/pkgconfig/libclc.pc" <<EOF
 includedir=$PREFIX/include
 libexecdir=$PREFIX/lib/clc
@@ -97,7 +104,7 @@ pushd "$OCL_ICD_SOURCE" >/dev/null
 ./bootstrap
 popd >/dev/null
 pushd "$OCL_ICD_BUILD" >/dev/null
-CC=/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc \
+CC=$TOOLCHAIN/x86_64-pc-linux-gnu-gcc \
   "$OCL_ICD_SOURCE/configure" --build=x86_64-pc-linux-gnu --host=x86_64-pc-linux-gnu \
     --prefix="$PREFIX"
 make -j"$COMPILE_JOBS"
@@ -109,7 +116,7 @@ progress mesa-prereqs running zlib
 rm -rf "$ZLIB_BUILD"
 mkdir -p "$ZLIB_BUILD"
 pushd "$ZLIB_BUILD" >/dev/null
-CHOST=x86_64-pc-linux-gnu CC=/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc \
+CHOST=x86_64-pc-linux-gnu CC=$TOOLCHAIN/x86_64-pc-linux-gnu-gcc \
   "$SOURCE_ROOT/zlib/configure" --prefix="$PREFIX" --shared
 make -j"$COMPILE_JOBS"
 DESTDIR="$STAGE" make install
@@ -122,8 +129,8 @@ progress mesa-prereqs running elfutils
 rm -rf "$ELF_BUILD"
 mkdir -p "$ELF_BUILD"
 pushd "$ELF_BUILD" >/dev/null
-CC=/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc \
-  CXX=/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-g++ \
+CC=$TOOLCHAIN/x86_64-pc-linux-gnu-gcc \
+  CXX=$TOOLCHAIN/x86_64-pc-linux-gnu-g++ \
   CPPFLAGS="-I$STAGE$PREFIX/include" LDFLAGS="-L$STAGE$PREFIX/lib" \
   "$SOURCE_ROOT/elfutils/configure" --build=x86_64-pc-linux-gnu --host=x86_64-pc-linux-gnu \
     --prefix="$PREFIX" --disable-debuginfod --disable-libdebuginfod --disable-demangler
@@ -140,8 +147,8 @@ SPIRV_TOOLS_BUILD="$BUILD_ROOT/spirv-tools"
 progress mesa-prereqs running SPIRV-Tools
 cmake -S "$SOURCE_ROOT/SPIRV-Tools" -B "$SPIRV_TOOLS_BUILD" -G Ninja \
   -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_NAME=Linux \
-  -DCMAKE_C_COMPILER="/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc" \
-  -DCMAKE_CXX_COMPILER="/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-g++" \
+  -DCMAKE_C_COMPILER="$TOOLCHAIN/x86_64-pc-linux-gnu-gcc" \
+  -DCMAKE_CXX_COMPILER="$TOOLCHAIN/x86_64-pc-linux-gnu-g++" \
   -DCMAKE_INSTALL_PREFIX="$PREFIX" -DSPIRV_WERROR=OFF \
   -DSPIRV_TOOLS_BUILD_STATIC=ON
 ninja -C "$SPIRV_TOOLS_BUILD" -j"$COMPILE_JOBS"
@@ -151,8 +158,8 @@ SPIRV_LLVM_BUILD="$BUILD_ROOT/spirv-llvm"
 progress mesa-prereqs running LLVMSPIRVLib
 cmake -S "$SOURCE_ROOT/spirv-llvm-translator" -B "$SPIRV_LLVM_BUILD" -G Ninja \
   -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_NAME=Linux \
-  -DCMAKE_C_COMPILER="/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc" \
-  -DCMAKE_CXX_COMPILER="/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-g++" \
+  -DCMAKE_C_COMPILER="$TOOLCHAIN/x86_64-pc-linux-gnu-gcc" \
+  -DCMAKE_CXX_COMPILER="$TOOLCHAIN/x86_64-pc-linux-gnu-g++" \
   -DCMAKE_INSTALL_PREFIX="$PREFIX" -DLLVM_DIR="$LLVM_TARGET_ROOT/lib/cmake/llvm" \
   -DLLVM_SPIRV_INCLUDE_TESTS=OFF
 ninja -C "$SPIRV_LLVM_BUILD" -j"$COMPILE_JOBS"
@@ -187,7 +194,7 @@ fi
 
 # This upstream feature opens the staged libdrm at runtime, avoiding a DSM
 # global-library change and allowing the SPK to carry its own ABI-matched copy.
-export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc
+export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=$TOOLCHAIN/x86_64-pc-linux-gnu-gcc
 export RUSTFLAGS="-C link-arg=-Wl,-rpath,\$ORIGIN/../lib"
 progress amdgpu_top running cargo
 pushd "$SOURCE_ROOT/amdgpu_top" >/dev/null
