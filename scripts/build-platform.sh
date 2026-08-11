@@ -17,6 +17,7 @@ trap 'status failed failed' ERR
 
 "$ROOT/scripts/generate-cross-file.sh" "$PLATFORM" "$DSM_VERSION" >/dev/null
 status '1/5 llvm' running '1/3 configure'
+status '1/5 llvm' running '2/3 ninja'
 docker run --rm -u 0 -v "$ROOT:/work" \
   -e "PLATFORM=$PLATFORM" -e "DSM_VERSION=$DSM_VERSION" \
   -e "COMPILE_JOBS=$COMPILE_JOBS" -e STATUS_FILE="/work/work/status/${KEY}.status" "$IMAGE" \
