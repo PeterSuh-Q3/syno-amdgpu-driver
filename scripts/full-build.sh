@@ -32,13 +32,13 @@ done
 render() {
   printf '\033[2J\033[H'
   printf 'Synology AMDGPU multi-build  %s  (max %s concurrent, -j%s each)\n\n' "$(date '+%F %T')" "$BUILD_JOBS" "$COMPILE_JOBS"
-  printf '%-22s %-16s %-10s %-18s %s\n' PLATFORM PHASE STATE DETAIL PROGRESS
+  printf '%-22s %-16s %-18s %-10s %s\n' PLATFORM PHASE DETAIL STATE PROGRESS
   for key in "${KEYS[@]}"; do
     local phase=queued state=waiting detail='-' count='-'
     if [[ -f "$STATE_DIR/$key.status" ]]; then IFS=$'\t' read -r phase state detail _ < "$STATE_DIR/$key.status" || true; fi
     local log="$LOG_DIR/$key.log"
     [[ -f $log ]] && count=$(grep -Eo '\[[0-9]+/[0-9]+\]' "$log" | tail -1 || true)
-    printf '%-22s %-16s %-10s %-18s %s\n' "$key" "$phase" "$state" "$detail" "${count:--}"
+    printf '%-22s %-16s %-18s %-10s %s\n' "$key" "$phase" "$detail" "$state" "${count:--}"
   done
 }
 

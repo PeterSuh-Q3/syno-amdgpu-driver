@@ -16,12 +16,12 @@ status() { printf '%s\t%s\t%s\t%s\n' "$1" "$2" "${3:-}" "$(date +%s)" > "$STATUS
 trap 'status failed failed' ERR
 
 "$ROOT/scripts/generate-cross-file.sh" "$PLATFORM" "$DSM_VERSION" >/dev/null
-status '1/5 llvm' running configure
+status '1/5 llvm' running '1/3 configure'
 docker run --rm -u 0 -v "$ROOT:/work" \
   -e "PLATFORM=$PLATFORM" -e "DSM_VERSION=$DSM_VERSION" \
   -e "COMPILE_JOBS=$COMPILE_JOBS" -e STATUS_FILE="/work/work/status/${KEY}.status" "$IMAGE" \
   bash /work/scripts/build-target-llvm.sh >> "$LOG_FILE" 2>&1
-status '4/5 mesa' running prepare
+status '1/5 llvm' running '3/3 verify'
 docker run --rm -u 0 -v "$ROOT:/work" \
   -e "PLATFORM=$PLATFORM" -e "DSM_VERSION=$DSM_VERSION" \
   -e "COMPILE_JOBS=$COMPILE_JOBS" -e STATUS_FILE="/work/work/status/${KEY}.status" "$IMAGE" \

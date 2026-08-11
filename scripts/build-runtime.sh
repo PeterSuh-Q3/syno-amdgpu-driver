@@ -24,10 +24,11 @@ progress() {
   [[ -n ${STATUS_FILE:-} ]] || return 0
   local phase="$1"
   case "$phase" in
-    libdrm) phase='2/5 libdrm' ;;
-    libva) phase='3/5 libva' ;;
-    mesa-prereqs|mesa) phase='4/5 mesa' ;;
-    amdgpu_top) phase='5/5 amdgpu_top' ;;
+    libdrm) phase='2/5 libdrm'; case "$3" in configure) set -- "$1" "$2" '1/3 configure';; build) set -- "$1" "$2" '2/3 build';; install) set -- "$1" "$2" '3/3 install';; esac ;;
+    libva) phase='3/5 libva'; case "$3" in configure) set -- "$1" "$2" '1/3 configure';; build) set -- "$1" "$2" '2/3 build';; install) set -- "$1" "$2" '3/3 install';; esac ;;
+    mesa-prereqs) phase='4/5 mesa'; case "$3" in ocl-icd) set -- "$1" "$2" '1/6 ocl-icd';; zlib) set -- "$1" "$2" '2/6 zlib';; elfutils) set -- "$1" "$2" '3/6 elfutils';; SPIRV-Tools) set -- "$1" "$2" '4/6 SPIRV-Tools';; LLVMSPIRVLib) set -- "$1" "$2" '5/6 LLVMSPIRVLib';; esac ;;
+    mesa) phase='4/5 mesa'; case "$3" in configure) set -- "$1" "$2" '6/6 configure';; install) set -- "$1" "$2" '6/6 install';; esac ;;
+    amdgpu_top) phase='5/5 amdgpu_top'; case "$3" in cargo) set -- "$1" "$2" '1/2 cargo';; package) set -- "$1" "$2" '2/2 package';; esac ;;
   esac
   printf '%s\t%s\t%s\t%s\n' "$phase" "$2" "${3:-}" "$(date +%s)" > "$STATUS_FILE"
 }
@@ -71,6 +72,7 @@ progress libdrm running configure
 meson setup --wipe "$BUILD_ROOT/libdrm" "$SOURCE_ROOT/libdrm" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
   -Damdgpu=enabled -Dintel=disabled -Dradeon=enabled -Dnouveau=disabled -Dvmwgfx=disabled
 ninja -C "$BUILD_ROOT/libdrm" -j"$COMPILE_JOBS"
+progress libdrm running build
 DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/libdrm" install
 progress libdrm running install
 
@@ -78,6 +80,7 @@ progress libva running configure
 meson setup --wipe "$BUILD_ROOT/libva" "$SOURCE_ROOT/libva" --cross-file "$CROSS_FILE" --prefix="$PREFIX" \
   -Ddisable_drm=false -Dwith_glx=no -Dwith_wayland=no -Dwith_x11=no
 ninja -C "$BUILD_ROOT/libva" -j"$COMPILE_JOBS"
+progress libva running build
 DESTDIR="$STAGE" ninja -C "$BUILD_ROOT/libva" install
 progress libva running install
 
