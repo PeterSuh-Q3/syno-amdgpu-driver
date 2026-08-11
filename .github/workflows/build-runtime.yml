@@ -32,21 +32,38 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  prepare_matrix:
+    name: Select platforms
+    runs-on: ubuntu-24.04
+    outputs:
+      platforms: ${{ steps.platforms.outputs.matrix }}
+    steps:
+      - id: platforms
+        env:
+          SELECTED_PLATFORM: ${{ inputs.platform }}
+        run: |
+          case "$SELECTED_PLATFORM" in
+            all)
+              echo 'matrix={"platform":["epyc7002","epyc7003","icelaked","r1000nk","v1000nk","geminilakenk"]}' >> "$GITHUB_OUTPUT"
+              ;;
+            epyc7002|epyc7003|icelaked|r1000nk|v1000nk|geminilakenk)
+              printf 'matrix={"platform":["%s"]}\n' "$SELECTED_PLATFORM" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "Unsupported platform: $SELECTED_PLATFORM" >&2
+              exit 2
+              ;;
+          esac
+
   build:
     name: ${{ matrix.platform }} / DSM ${{ inputs.dsm_version }}
-    if: ${{ inputs.platform == 'all' || inputs.platform == matrix.platform }}
+    needs: prepare_matrix
     runs-on: ubuntu-24.04
     timeout-minutes: 360
     strategy:
       fail-fast: false
       matrix:
-        platform:
-          - epyc7002
-          - epyc7003
-          - icelaked
-          - r1000nk
-          - v1000nk
-          - geminilakenk
+        platform: ${{ fromJSON(needs.prepare_matrix.outputs.platforms).platform }}
 
     steps:
       - name: Check out source
