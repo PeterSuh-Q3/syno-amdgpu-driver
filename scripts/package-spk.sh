@@ -12,6 +12,10 @@ ASSEMBLY=$ROOT/work/spk-${PLATFORM}-${DSM_VERSION}
 rm -rf "$ASSEMBLY"
 mkdir -p "$ASSEMBLY/scripts" "$ASSEMBLY/conf"
 cp "$ROOT/spk/INFO" "$ASSEMBLY/INFO"
+# The same source metadata template is used for every toolchain target.  DSM
+# uses INFO\'s arch field during installation, so replace the template value
+# with the platform actually being packaged.
+sed -i -E "s/^arch=\"[^\"]*\"$/arch=\"$PLATFORM\"/" "$ASSEMBLY/INFO"
 cp "$ROOT/spk/scripts/"* "$ASSEMBLY/scripts/"
 cp "$ROOT/spk/conf/"* "$ASSEMBLY/conf/"
 for icon in PACKAGE_ICON.PNG PACKAGE_ICON_256.PNG; do
