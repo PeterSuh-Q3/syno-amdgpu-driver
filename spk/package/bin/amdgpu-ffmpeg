@@ -8,4 +8,12 @@ FFMPEG_BIN=${FFMPEG_BIN:-/var/packages/ffmpeg7/target/bin/ffmpeg}
   echo "amdgpu-ffmpeg: FFmpeg not found: $FFMPEG_BIN" >&2
   exit 127
 }
+
+# /dev/shm is recreated on boot.  Recreate Jellyfin's private transcoding
+# workspace on demand using the invoking Jellyfin account's ownership.
+SHM_TRANSCODE_DIR=${SHM_TRANSCODE_DIR:-/dev/shm/jellyfin}
+if [ ! -d "$SHM_TRANSCODE_DIR" ]; then
+  (umask 077 && mkdir -p "$SHM_TRANSCODE_DIR") 2>/dev/null || true
+fi
+
 exec "$ROOT/bin/amdgpu-env" "$FFMPEG_BIN" "$@"

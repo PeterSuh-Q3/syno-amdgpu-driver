@@ -6,34 +6,46 @@ set -eu
 
 ROOT=/var/packages/syno-amdgpu-runtime/target
 CFG=/var/packages/jellyfin/var/config/encoding.xml
-STAMP=/var/packages/jellyfin/var/config/.amdgpu-runtime-autoconf
+STAMP=/var/packages/jellyfin/var/config/.amdgpu-runtime-autoconf-v2
 FFMPEG=$ROOT/bin/amdgpu-ffmpeg
+SHM_TRANSCODE_DIR=/dev/shm/jellyfin
 
 [ -f "$CFG" ] && [ -x "$FFMPEG" ] || exit 0
 [ -e "$STAMP" ] && exit 0
 
-CURRENT=$(sed -n 's#.*<HardwareAccelerationType>\([^<]*\)</HardwareAccelerationType>.*#\1#p' "$CFG" | head -1)
-if [ -n "$CURRENT" ] && [ "$CURRENT" != none ]; then
-  : > "$STAMP"
-  exit 0
-fi
-
 OWNER=$(stat -c '%U:%G' "$CFG" 2>/dev/null || true)
 jfset() {
+  if ! grep -q "<$1[ >/ ]" "$CFG"; then
+    sed -i "s#</EncodingOptions>#  <$1>$2</$1>\\n</EncodingOptions>#" "$CFG"
+    return
+  fi
   sed -i \
     -e "s#<$1 */>#<$1>$2</$1>#" \
     -e "s#<$1 [^>]*/>#<$1>$2</$1>#" \
     -e "s#<$1>[^<]*</$1>#<$1>$2</$1>#" "$CFG"
 }
 
-jfset HardwareAccelerationType vaapi
-jfset VaapiDevice /dev/dri/renderD128
-jfset EnableHardwareEncoding true
-jfset AllowHevcEncoding true
-jfset AllowAv1Encoding false
-jfset EnableDecodingColorDepth10Hevc true
-jfset EnableDecodingColorDepth10Vp9 false
-jfset EncoderAppPathDisplay "$FFMPEG"
+CURRENT=$(sed -n 's#.*<HardwareAccelerationType>\([^<]*\)</HardwareAccelerationType>.*#\1#p' "$CFG" | head -1)
+if [ -z "$CURRENT" ] || [ "$CURRENT" = none ]; then
+  jfset HardwareAccelerationType vaapi
+  jfset VaapiDevice /dev/dri/renderD128
+  jfset EnableHardwareEncoding true
+  jfset AllowHevcEncoding true
+  jfset AllowAv1Encoding false
+  jfset EnableDecodingColorDepth10Hevc true
+  jfset EnableDecodingColorDepth10Vp9 false
+  jfset EncoderAppPathDisplay "$FFMPEG"
+fi
+
+# Use RAM-backed storage by default without overriding an administrator's
+# existing non-empty transcoding path.
+TRANSCODE_PATH=$(sed -n 's#.*<TranscodingTempPath>\([^<]*\)</TranscodingTempPath>.*#\1#p' "$CFG" | head -1)
+if [ -z "$TRANSCODE_PATH" ]; then
+  jfset TranscodingTempPath "$SHM_TRANSCODE_DIR"
+fi
+mkdir -p "$SHM_TRANSCODE_DIR"
+chown "$OWNER" "$SHM_TRANSCODE_DIR" 2>/dev/null || true
+chmod 0700 "$SHM_TRANSCODE_DIR" 2>/dev/null || true
 
 awk '
   function emit() {
