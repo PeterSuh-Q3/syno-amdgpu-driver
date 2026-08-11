@@ -1,0 +1,95 @@
+name: Build DSM AMDGPU Runtime
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: DSM platform to build
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - epyc7002
+          - epyc7003
+          - icelaked
+          - r1000nk
+          - v1000nk
+          - geminilakenk
+      dsm_version:
+        description: DSM toolchain profile
+        required: true
+        default: '7.4'
+        type: choice
+        options:
+          - '7.4'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: amdgpu-runtime-${{ github.workflow }}-${{ inputs.platform }}-${{ inputs.dsm_version }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: ${{ matrix.platform }} / DSM ${{ inputs.dsm_version }}
+    if: ${{ inputs.platform == 'all' || inputs.platform == matrix.platform }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - epyc7002
+          - epyc7003
+          - icelaked
+          - r1000nk
+          - v1000nk
+          - geminilakenk
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Show available runner resources
+        run: |
+          nproc
+          free -h
+          df -h
+          docker version
+
+      - name: Build DSM runtime builder image
+        run: ./scripts/build-builder.sh '${{ inputs.dsm_version }}'
+
+      - name: Build runtime and SPK
+        env:
+          COMPILE_JOBS: '4'
+        run: |
+          ./scripts/build-platform.sh '${{ matrix.platform }}' '${{ inputs.dsm_version }}'
+
+      - name: Show result metadata
+        if: always()
+        run: |
+          find dist -maxdepth 1 -type f -name '*.spk' -printf '%f %s bytes\n' 2>/dev/null || true
+          find logs work/status -maxdepth 1 -type f -printf '%p\n' 2>/dev/null || true
+
+      - name: Upload SPK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: syno-amdgpu-runtime-${{ inputs.dsm_version }}-${{ matrix.platform }}
+          path: dist/syno-amdgpu-runtime-*-${{ inputs.dsm_version }}-${{ matrix.platform }}.spk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: syno-amdgpu-build-logs-${{ inputs.dsm_version }}-${{ matrix.platform }}
+          path: |
+            logs/
+            work/status/
+          if-no-files-found: warn
+          retention-days: 14

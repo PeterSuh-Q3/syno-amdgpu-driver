@@ -1,7 +1,7 @@
 # DSM 7.4 AMDGPU runtime SPK build
 
 `build/ALL-PLATFORMS`에 등록된 DSM 7.4 x86_64 플랫폼을 대상으로 한다.
-개별 결과물은 `dist/syno-amdgpu-runtime-7.4-<platform>.spk`이다.
+개별 결과물은 `dist/syno-amdgpu-runtime-<package-version>-7.4-<platform>.spk`이다.
 
 플랫폼별 Meson 크로스 파일은 Git에서 개별 관리하지 않는다. `scripts/generate-cross-file.sh`가 목록의 플랫폼명에서 `/opt/<platform>/bin` 경로를 사용해 `work/profiles/<platform>-<dsm>.ini`를 자동 생성한다. 새 플랫폼은 `ALL-PLATFORMS`에만 추가한다.
 
@@ -45,3 +45,13 @@ PLATFORMS_FILE=build/ALL-PLATFORMS BUILD_JOBS=2 ./scripts/full-build.sh
 빌드 중에는 플랫폼별 주 단계와 `DETAIL`이 실시간 표시된다. 예를 들어 `4/5 mesa | running | SPIRV-Tools`처럼 표시되며, Ninja 카운트도 함께 보인다. 세부 로그는 `logs/`, 상태 파일은 `work/status/`에 남는다.
 
 Mesa와 `amdgpu_top`은 패키지 내부의 라이브러리를 찾도록 RPATH/환경 래퍼를 사용한다. DSM의 `/usr/lib`를 수정하거나 덮어쓰지 않는다.
+## GitHub Actions build
+
+The **Build DSM AMDGPU Runtime** workflow reproduces the Docker-based VM build
+on a GitHub-hosted Ubuntu runner.  Open **Actions**, select the workflow, click
+**Run workflow**, then select either one platform or `all`.
+
+Each selected platform receives its own runner and builds the same
+`syno-amdgpu-builder:7.4` image used by the VM.  The workflow uploads the SPK
+and build logs as separate artifacts for 14 days.  It is intentionally manual
+only because a full Mesa/LLVM build consumes substantial runner time.
