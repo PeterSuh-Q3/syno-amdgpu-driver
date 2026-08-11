@@ -63,10 +63,8 @@ jobs:
         run: ./scripts/build-builder.sh '${{ inputs.dsm_version }}'
 
       - name: Build runtime and SPK
-        env:
-          COMPILE_JOBS: '4'
         run: |
-          ./scripts/build-platform.sh '${{ matrix.platform }}' '${{ inputs.dsm_version }}'
+          COMPILE_JOBS="$(nproc)" ./scripts/build-platform.sh '${{ matrix.platform }}' '${{ inputs.dsm_version }}'
 
       - name: Show result metadata
         if: always()
