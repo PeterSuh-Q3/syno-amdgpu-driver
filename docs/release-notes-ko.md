@@ -6,11 +6,11 @@ Synology AMDGPU Runtime은 DSM에 이미 `amdgpu.ko` 커널 모듈이 설치되�
 
 ```mermaid
 flowchart LR
-    A[AMD GPU + amdgpu.ko] --> B[/dev/dri/renderD*]
-    B --> C[Synology AMDGPU Runtime]
-    C --> D[VA-API 영상 가속]
-    C --> E[Vulkan · OpenCL]
-    D --> F[Jellyfin · FFmpeg]
+    A["AMD GPU + amdgpu.ko"] --> B["/dev/dri/renderD*"]
+    B --> C["Synology AMDGPU Runtime"]
+    C --> D["VA-API 영상 가속"]
+    C --> E["Vulkan · OpenCL"]
+    D --> F["Jellyfin · FFmpeg"]
 ```
 
 ## 무엇을 할 수 있나요?
