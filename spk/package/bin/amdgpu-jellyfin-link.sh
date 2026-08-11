@@ -8,6 +8,12 @@ BACKUP=${JELLYFIN_SETUP}.pre-amdgpu-runtime.bak
 STOCK=/var/packages/ffmpeg7/target/bin/ffmpeg
 AMD=/var/packages/syno-amdgpu-runtime/target/bin/amdgpu-ffmpeg
 AUTOCONFIG=/var/packages/syno-amdgpu-runtime/target/bin/amdgpu-jellyfin-autoconfig.sh
+RESTART_MARKER=/var/packages/syno-amdgpu-runtime/var/jellyfin-restart-required
+
+mark_restart() {
+  mkdir -p "$(dirname "$RESTART_MARKER")"
+  : > "$RESTART_MARKER"
+}
 
 case "${1:-}" in
   patch)
@@ -20,6 +26,7 @@ case "${1:-}" in
     sed -i "s#--ffmpeg $STOCK#--ffmpeg $AMD#g" "$JELLYFIN_SETUP"
     chown root:root "$JELLYFIN_SETUP" "$BACKUP"
     chmod 0755 "$JELLYFIN_SETUP" "$BACKUP"
+    mark_restart
     ;;
   restore)
     [ -f "$JELLYFIN_SETUP" ] || exit 0
@@ -36,8 +43,17 @@ case "${1:-}" in
   configure)
     [ -x "$AUTOCONFIG" ] && "$AUTOCONFIG"
     ;;
+  restart)
+    [ -e "$RESTART_MARKER" ] || exit 0
+    [ -d /var/packages/jellyfin ] || { rm -f "$RESTART_MARKER"; exit 0; }
+    if /usr/syno/bin/synopkg restart jellyfin; then
+      rm -f "$RESTART_MARKER"
+    else
+      echo "Warning: Jellyfin restart was not completed; restart it manually." >&2
+    fi
+    ;;
   *)
-    echo "usage: amdgpu-jellyfin-link.sh {patch|restore|configure}" >&2
+    echo "usage: amdgpu-jellyfin-link.sh {patch|restore|configure|restart}" >&2
     exit 2
     ;;
 esac

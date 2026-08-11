@@ -197,23 +197,9 @@ progress amdgpu_top running package
 popd >/dev/null
 
 # DSM applies root ownership and setuid only to the explicitly declared
-# privilege tool.  It creates/removes the fixed /usr/bin/amdgpu_top shim.
-mkdir -p "$STAGE$PREFIX/bin/helper"
-/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc -O2 -Wall -Wextra -Werror \
-  "$ROOT/spk/package/bin/helper/amdgpu-path-helper.c" \
-  -o "$STAGE$PREFIX/bin/helper/amdgpu-path-helper"
-/opt/${PLATFORM}/bin/x86_64-pc-linux-gnu-gcc -O2 -Wall -Wextra -Werror \
-  "$ROOT/spk/package/bin/helper/amdgpu-jellyfin-helper.c" \
-  -o "$STAGE$PREFIX/bin/helper/amdgpu-jellyfin-helper"
-chmod 0755 "$STAGE$PREFIX/bin/helper/amdgpu-path-helper"
-chmod 0755 "$STAGE$PREFIX/bin/helper/amdgpu-jellyfin-helper"
-
-install -Dm755 "$ROOT/scripts/verify-runtime.sh" "$STAGE$PREFIX/bin/verify-amdgpu-runtime"
-install -Dm755 "$ROOT/spk/package/bin/amdgpu-env" "$STAGE$PREFIX/bin/amdgpu-env"
-install -Dm755 "$ROOT/spk/package/bin/amdgpu-ffmpeg" "$STAGE$PREFIX/bin/amdgpu-ffmpeg"
-install -Dm755 "$ROOT/spk/package/bin/amdgpu-jellyfin-link.sh" "$STAGE$PREFIX/bin/amdgpu-jellyfin-link.sh"
-install -Dm755 "$ROOT/spk/package/bin/amdgpu-jellyfin-autoconfig.sh" "$STAGE$PREFIX/bin/amdgpu-jellyfin-autoconfig.sh"
+# privilege tool.  Refresh these integration files immediately before
+# packaging so package-only updates remain reproducible.
 mkdir -p "$STAGE$PREFIX/etc/vulkan/icd.d"
 cp "$ROOT/spk/package/etc/vulkan/icd.d/radeon_icd.x86_64.json" "$STAGE$PREFIX/etc/vulkan/icd.d/"
-"$ROOT/scripts/package-spk.sh" "$STAGE" "$PLATFORM" "$DSM_VERSION"
+"$ROOT/scripts/refresh-spk-stage.sh" "$STAGE" "$PLATFORM" "$DSM_VERSION"
 progress complete success
