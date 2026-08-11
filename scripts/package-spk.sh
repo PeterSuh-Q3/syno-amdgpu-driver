@@ -16,6 +16,8 @@ cp "$ROOT/spk/INFO" "$ASSEMBLY/INFO"
 # uses INFO\'s arch field during installation, so replace the template value
 # with the platform actually being packaged.
 sed -i -E "s/^arch=\"[^\"]*\"$/arch=\"$PLATFORM\"/" "$ASSEMBLY/INFO"
+VERSION=$(sed -n 's/^version="\([^"]*\)"$/\1/p' "$ASSEMBLY/INFO" | head -n 1)
+[[ -n $VERSION ]] || { echo 'Missing package version in INFO' >&2; exit 2; }
 cp "$ROOT/spk/scripts/"* "$ASSEMBLY/scripts/"
 cp "$ROOT/spk/conf/"* "$ASSEMBLY/conf/"
 for icon in PACKAGE_ICON.PNG PACKAGE_ICON_256.PNG; do
@@ -43,5 +45,6 @@ members=(INFO package.tgz scripts conf)
 for icon in PACKAGE_ICON.PNG PACKAGE_ICON_256.PNG; do
   [[ -f "$ASSEMBLY/$icon" ]] && members+=("$icon")
 done
-tar -C "$ASSEMBLY" -cf "$OUT/${PACKAGE}-${DSM_VERSION}-${PLATFORM}.spk" "${members[@]}"
-echo "Built $OUT/${PACKAGE}-${DSM_VERSION}-${PLATFORM}.spk"
+SPK="$OUT/${PACKAGE}-${VERSION}-${DSM_VERSION}-${PLATFORM}.spk"
+tar -C "$ASSEMBLY" -cf "$SPK" "${members[@]}"
+echo "Built $SPK"
