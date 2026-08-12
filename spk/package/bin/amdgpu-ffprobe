@@ -1,0 +1,13 @@
+#!/bin/sh
+# Companion to amdgpu-ffmpeg. Jellyfin derives this path by looking next to its
+# configured FFmpeg executable, so keep the probe command under the same AMD
+# runtime environment without replacing SynoCommunity's ffprobe binary.
+set -eu
+ROOT=/var/packages/syno-amdgpu-runtime/target
+FFPROBE_BIN=${FFPROBE_BIN:-/var/packages/ffmpeg7/target/bin/ffprobe}
+[ -x "$FFPROBE_BIN" ] || {
+  echo "amdgpu-ffprobe: FFprobe not found: $FFPROBE_BIN" >&2
+  exit 127
+}
+
+exec "$ROOT/bin/amdgpu-env" "$FFPROBE_BIN" "$@"

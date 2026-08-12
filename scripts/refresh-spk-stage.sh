@@ -26,6 +26,8 @@ chmod 0755 "$STAGE$PREFIX/bin/helper/amdgpu-path-helper" "$STAGE$PREFIX/bin/help
 install -Dm755 "$ROOT/scripts/verify-runtime.sh" "$STAGE$PREFIX/bin/verify-amdgpu-runtime"
 install -Dm755 "$ROOT/spk/package/bin/amdgpu-env" "$STAGE$PREFIX/bin/amdgpu-env"
 install -Dm755 "$ROOT/spk/package/bin/amdgpu-ffmpeg" "$STAGE$PREFIX/bin/amdgpu-ffmpeg"
+install -Dm755 "$ROOT/spk/package/bin/amdgpu-ffprobe" "$STAGE$PREFIX/bin/amdgpu-ffprobe"
+ln -sfn amdgpu-ffprobe "$STAGE$PREFIX/bin/ffprobe"
 install -Dm755 "$ROOT/spk/package/bin/amdgpu-jellyfin-link.sh" "$STAGE$PREFIX/bin/amdgpu-jellyfin-link.sh"
 install -Dm755 "$ROOT/spk/package/bin/amdgpu-jellyfin-autoconfig.sh" "$STAGE$PREFIX/bin/amdgpu-jellyfin-autoconfig.sh"
 
