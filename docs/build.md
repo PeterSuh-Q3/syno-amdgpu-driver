@@ -5,6 +5,16 @@
 
 플랫폼별 Meson 크로스 파일은 Git에서 개별 관리하지 않는다. `scripts/generate-cross-file.sh`가 목록의 플랫폼명에서 `/opt/<platform>/bin` 경로를 사용해 `work/profiles/<platform>-<dsm>.ini`를 자동 생성한다. 새 플랫폼은 `ALL-PLATFORMS`에만 추가한다.
 
+## DSM 7.4 kernel 4.4 순차 빌드
+
+`build/ALL-PLATFORMS-kernel4`에는 아직 빌드하지 않은 kernel 4.4 대상만 담는다. 이미 릴리즈한 `geminilake`는 의도적으로 제외되어 있다. DockerHub의 `syno-amdgpu-builder:7.4` 이미지가 각 대상의 `/opt/<platform>` toolchain을 제공하는 환경에서 다음처럼 실행한다.
+
+```bash
+COMPILE_JOBS=12 ./scripts/build-kernel4-sequential.sh
+```
+
+이 실행은 한 번에 한 플랫폼만 처리(`BUILD_JOBS=1`)하므로 12 스레드를 해당 플랫폼에 모두 배정한다. 상태와 로그는 각각 `work/status/`, `logs/`에 `<platform>-7.4` 이름으로 저장된다.
+
 ## Build container prerequisites
 
 기존 NVIDIA 빌드와 동일한 `dante90/syno-compiler:7.4` 컨테이너를 사용한다. 컨테이너에 아래 도구와 DSM 대상 LLVM이 있어야 한다.

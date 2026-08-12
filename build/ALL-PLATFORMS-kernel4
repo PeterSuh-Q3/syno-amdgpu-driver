@@ -1,0 +1,13 @@
+# DSM 7.4 kernel 4.4 x86_64 platforms.
+# geminilake is intentionally excluded: it has already been built and released.
+# Run these sequentially with:
+#   BUILD_JOBS=1 COMPILE_JOBS=12 ./scripts/build-kernel4-sequential.sh
+apollolake      7.4
+broadwell       7.4
+broadwellnk     7.4
+broadwellnkv2   7.4
+broadwellntbap  7.4
+denverton       7.4
+purley          7.4
+r1000           7.4
+v1000           7.4
