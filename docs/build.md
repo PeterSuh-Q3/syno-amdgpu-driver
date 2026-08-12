@@ -15,6 +15,18 @@ COMPILE_JOBS=12 ./scripts/build-kernel4-sequential.sh
 
 이 실행은 한 번에 한 플랫폼만 처리(`BUILD_JOBS=1`)하므로 12 스레드를 해당 플랫폼에 모두 배정한다. 상태와 로그는 각각 `work/status/`, `logs/`에 `<platform>-7.4` 이름으로 저장된다.
 
+## DSM 7.4 kvmx64 가상 플랫폼 파일럿
+
+`kvmx64`는 커널 4.4.302 기반의 범용 KVM x86_64 대상이다. DockerHub의 compiler 이미지가 갱신된 뒤 VM에서 먼저 이미지를 갱신하고 runtime builder를 재생성한다.
+
+```bash
+docker pull dante90/syno-compiler:7.4
+./scripts/build-builder.sh 7.4
+COMPILE_JOBS=12 ./scripts/build-kvmx64-pilot.sh
+```
+
+파일럿 산출물은 `dist/syno-amdgpu-runtime-kvmx64-7.4-<version>.spk`로 생성된다. `INFO`의 아키텍처도 `kvmx64`로 패키징되므로 KVM DSM에서만 설치 대상으로 표시된다.
+
 ## Build container prerequisites
 
 기존 NVIDIA 빌드와 동일한 `dante90/syno-compiler:7.4` 컨테이너를 사용한다. 컨테이너에 아래 도구와 DSM 대상 LLVM이 있어야 한다.
