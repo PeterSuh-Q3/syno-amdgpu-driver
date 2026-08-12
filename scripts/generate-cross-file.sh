@@ -6,7 +6,10 @@ DSM_VERSION=${2:?DSM version required}
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 OUT="$ROOT/work/profiles/${PLATFORM}-${DSM_VERSION}.ini"
 TOOLCHAIN=${TOOLCHAIN_BIN:-"/opt/${PLATFORM}/bin"}
-RUSTC_BIN=${RUSTC_BIN:-$(command -v rustc)}
+# The generated file is consumed by either the Docker builder or a host build.
+# Use PATH lookup by default: the Docker image supplies rustc even when the VM
+# host intentionally has no Rust toolchain installed.
+RUSTC_BIN=${RUSTC_BIN:-rustc}
 
 mkdir -p "$(dirname "$OUT")"
 cat > "$OUT" <<EOF
