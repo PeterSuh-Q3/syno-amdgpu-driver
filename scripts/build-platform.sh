@@ -12,9 +12,10 @@ IMAGE=${BUILDER_IMAGE:-"syno-amdgpu-builder:${DSM_VERSION}"}
 COMPILE_JOBS=${COMPILE_JOBS:-$(nproc)}
 
 mkdir -p "$(dirname "$STATUS_FILE")" "$(dirname "$LOG_FILE")"
-status() { printf '%s\t%s\t%s\t%s\n' "$1" "$2" "${3:-}" "$(date +%s)" > "$STATUS_FILE"; }
-trap 'status failed failed' ERR
+status() { printf '%s\t%s\t%s\t%s\n' "$1" "$2" "${3:--}" "$(date +%s)" > "$STATUS_FILE"; }
+trap 'status failed failed -' ERR
 
+LLVM_CONFIG_BIN=$([[ ${BUILD_BACKEND:-docker} == host ]] && printf '%s' "$ROOT/scripts/llvm-config-synology-x64.sh" || printf '%s' '/work/scripts/llvm-config-synology-x64.sh') \
 TOOLCHAIN_BIN=${TOOLCHAIN_BIN:-"/opt/${PLATFORM}/bin"} \
   "$ROOT/scripts/generate-cross-file.sh" "$PLATFORM" "$DSM_VERSION" >/dev/null
 status '1/5 llvm' running '1/3 configure'
