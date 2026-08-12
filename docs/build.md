@@ -25,7 +25,7 @@ docker pull dante90/syno-compiler:7.4
 COMPILE_JOBS=12 ./scripts/build-kvmx64-pilot.sh
 ```
 
-파일럿 산출물은 `dist/syno-amdgpu-runtime-kvmx64-7.4-<version>.spk`로 생성된다. `INFO`의 아키텍처도 `kvmx64`로 패키징되므로 KVM DSM에서만 설치 대상으로 표시된다.
+파일럿 산출물은 `dist/syno-amdgpu-runtime-<version>-7.4-x86_64.spk`로 생성된다. 파일명은 범용 CPU 아키텍처를 사용하지만, `INFO`의 아키텍처는 계속 `kvmx64`로 패키징되므로 KVM DSM에서만 설치 대상으로 표시된다.
 
 ## Build container prerequisites
 

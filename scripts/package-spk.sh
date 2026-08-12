@@ -8,6 +8,13 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 PACKAGE=syno-amdgpu-runtime
 OUT=$ROOT/dist
 ASSEMBLY=$ROOT/work/spk-${PLATFORM}-${DSM_VERSION}
+# kvmx64 is Synology's virtual-platform identifier and must remain in INFO's
+# arch field.  Use the clearer CPU-architecture suffix for the distributable
+# filename so it is not mistaken for a hardware model.
+case "$PLATFORM" in
+  kvmx64) FILE_ARCH=x86_64 ;;
+  *)      FILE_ARCH=$PLATFORM ;;
+esac
 
 rm -rf "$ASSEMBLY"
 mkdir -p "$ASSEMBLY/scripts" "$ASSEMBLY/conf"
@@ -45,6 +52,6 @@ members=(INFO package.tgz scripts conf)
 for icon in PACKAGE_ICON.PNG PACKAGE_ICON_256.PNG; do
   [[ -f "$ASSEMBLY/$icon" ]] && members+=("$icon")
 done
-SPK="$OUT/${PACKAGE}-${VERSION}-${DSM_VERSION}-${PLATFORM}.spk"
+SPK="$OUT/${PACKAGE}-${VERSION}-${DSM_VERSION}-${FILE_ARCH}.spk"
 tar -C "$ASSEMBLY" -cf "$SPK" "${members[@]}"
 echo "Built $SPK"
