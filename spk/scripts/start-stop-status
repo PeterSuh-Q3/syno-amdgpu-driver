@@ -2,19 +2,11 @@
 # DSM requires this compatibility entry point even for a file-only package.
 # As used by SynoCommunity's SynoCli Video Drivers package, status must return
 # success so DSM does not repeatedly stop/restart an intentionally daemonless
-# package.  ctl_stop="no" in INFO hides all Start/Stop controls from the UI.
-sync_jellyfin() {
-  # Event-driven only: DSM invokes this compatibility script during package
-  # lifecycle/status checks.  No resident watcher or daemon is started.
-  HELPER=/var/packages/syno-amdgpu-runtime/target/bin/helper/amdgpu-jellyfin-helper
-  [ -x "$HELPER" ] || return 0
-  [ -d /var/packages/jellyfin ] || return 0
-  "$HELPER" patch >/dev/null 2>&1 || true
-  "$HELPER" configure >/dev/null 2>&1 || true
-}
-
+# package.  Jellyfin integration is deliberately performed only by postinst:
+# DSM invokes this file again after installation and during status polling, so
+# mutating Jellyfin here can race its own start-up.
 case "${1:-}" in
-  start|status) sync_jellyfin; exit 0 ;;
+  start|status) exit 0 ;;
   stop) exit 0 ;;
   log) exit 1 ;;
   *) exit 1 ;;

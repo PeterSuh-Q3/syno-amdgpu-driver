@@ -6,7 +6,7 @@ set -eu
 
 ROOT=/var/packages/syno-amdgpu-runtime/target
 CFG=/var/packages/jellyfin/var/config/encoding.xml
-STAMP=/var/packages/jellyfin/var/config/.amdgpu-runtime-autoconf-v2
+STAMP=/var/packages/jellyfin/var/config/.amdgpu-runtime-autoconf-v3
 FFMPEG=$ROOT/bin/amdgpu-ffmpeg
 SHM_TRANSCODE_DIR=/dev/shm/jellyfin
 RESTART_MARKER=/var/packages/syno-amdgpu-runtime/var/jellyfin-restart-required
@@ -40,10 +40,12 @@ if [ -z "$CURRENT" ] || [ "$CURRENT" = none ]; then
   CHANGED=1
 fi
 
-# Use RAM-backed storage by default without overriding an administrator's
-# existing non-empty transcoding path.
+# Use a private RAM-backed directory by default.  The old generic /dev/shm
+# setting is unsafe: Jellyfin's cleanup scans it and can encounter files owned
+# by Plex, PostgreSQL, or DSM services.  Migrate that known legacy default;
+# preserve every other administrator-selected path.
 TRANSCODE_PATH=$(sed -n 's#.*<TranscodingTempPath>\([^<]*\)</TranscodingTempPath>.*#\1#p' "$CFG" | head -1)
-if [ -z "$TRANSCODE_PATH" ]; then
+if [ -z "$TRANSCODE_PATH" ] || [ "$TRANSCODE_PATH" = /dev/shm ]; then
   jfset TranscodingTempPath "$SHM_TRANSCODE_DIR"
   CHANGED=1
 fi
