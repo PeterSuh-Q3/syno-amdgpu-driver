@@ -12,6 +12,12 @@
       "user": "root",
       "group": "package",
       "permission": "6550"
+    },
+    {
+      "relpath": "bin/helper/amdgpu-plex-helper",
+      "user": "root",
+      "group": "package",
+      "permission": "6550"
     }
   ]
 }
