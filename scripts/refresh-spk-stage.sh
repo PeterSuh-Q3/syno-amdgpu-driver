@@ -28,8 +28,8 @@ mkdir -p "$STAGE$PREFIX/bin/helper"
 # Package lifecycle scripts run as the package account on DSM.  These narrow
 # helpers are intentionally setuid-root so they can modify only the fixed
 # third-party integration files and then clear their environment.
-chown root:syno-amdgpu-runtime "$STAGE$PREFIX/bin/helper/amdgpu-path-helper" "$STAGE$PREFIX/bin/helper/amdgpu-jellyfin-helper" "$STAGE$PREFIX/bin/helper/amdgpu-plex-helper"
-chmod 6750 "$STAGE$PREFIX/bin/helper/amdgpu-path-helper" "$STAGE$PREFIX/bin/helper/amdgpu-jellyfin-helper" "$STAGE$PREFIX/bin/helper/amdgpu-plex-helper"
+chown root:root "$STAGE$PREFIX/bin/helper/amdgpu-path-helper" "$STAGE$PREFIX/bin/helper/amdgpu-jellyfin-helper" "$STAGE$PREFIX/bin/helper/amdgpu-plex-helper"
+chmod 4755 "$STAGE$PREFIX/bin/helper/amdgpu-path-helper" "$STAGE$PREFIX/bin/helper/amdgpu-jellyfin-helper" "$STAGE$PREFIX/bin/helper/amdgpu-plex-helper"
 
 install -Dm755 "$ROOT/scripts/verify-runtime.sh" "$STAGE$PREFIX/bin/verify-amdgpu-runtime"
 install -Dm755 "$ROOT/spk/package/bin/amdgpu-env" "$STAGE$PREFIX/bin/amdgpu-env"
