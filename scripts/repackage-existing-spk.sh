@@ -34,5 +34,7 @@ mkdir -p "$TARGET/bin/helper"
   "$ROOT/spk/package/bin/helper/amdgpu-plex-helper.c" \
   -o "$TARGET/bin/helper/amdgpu-plex-helper"
 chmod 0755 "$TARGET/bin/helper/amdgpu-plex-helper"
+chown root:syno-amdgpu-runtime "$TARGET/bin/helper/amdgpu-plex-helper"
+chmod 6750 "$TARGET/bin/helper/amdgpu-plex-helper"
 
 "$ROOT/scripts/package-spk.sh" "$STAGE" "$PLATFORM" "$DSM_VERSION" "$KERNEL_FLAVOR"
