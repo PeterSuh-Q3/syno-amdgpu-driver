@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT=${ROOT:-/work}
 PLATFORM=${PLATFORM:-epyc7002}
 DSM_VERSION=${DSM_VERSION:-7.4}
+KERNEL_FLAVOR=${KERNEL_FLAVOR:-kernel5.10.55}
 PREFIX=/var/packages/syno-amdgpu-runtime/target
 BUILD_ROOT=$ROOT/work/${PLATFORM}-${DSM_VERSION}
 SOURCE_ROOT=$ROOT/sources
@@ -208,5 +209,5 @@ popd >/dev/null
 # packaging so package-only updates remain reproducible.
 mkdir -p "$STAGE$PREFIX/etc/vulkan/icd.d"
 cp "$ROOT/spk/package/etc/vulkan/icd.d/radeon_icd.x86_64.json" "$STAGE$PREFIX/etc/vulkan/icd.d/"
-"$ROOT/scripts/refresh-spk-stage.sh" "$STAGE" "$PLATFORM" "$DSM_VERSION"
+"$ROOT/scripts/refresh-spk-stage.sh" "$STAGE" "$PLATFORM" "$DSM_VERSION" "$KERNEL_FLAVOR"
 progress complete success

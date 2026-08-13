@@ -6,6 +6,7 @@ set -euo pipefail
 INPUT=${1:?existing SPK required}
 PLATFORM=${2:?platform required}
 DSM_VERSION=${3:?DSM version required}
+KERNEL_FLAVOR=${4:-kernel5.10.55}
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 PACKAGE=syno-amdgpu-runtime
 WORK="$ROOT/work/repackage-${PLATFORM}-${DSM_VERSION}"
@@ -26,4 +27,4 @@ ln -sfn amdgpu-ffprobe "$TARGET/bin/ffprobe"
 install -Dm755 "$ROOT/spk/package/bin/amdgpu-jellyfin-link.sh" "$TARGET/bin/amdgpu-jellyfin-link.sh"
 install -Dm755 "$ROOT/spk/package/bin/amdgpu-jellyfin-autoconfig.sh" "$TARGET/bin/amdgpu-jellyfin-autoconfig.sh"
 
-"$ROOT/scripts/package-spk.sh" "$STAGE" "$PLATFORM" "$DSM_VERSION"
+"$ROOT/scripts/package-spk.sh" "$STAGE" "$PLATFORM" "$DSM_VERSION" "$KERNEL_FLAVOR"

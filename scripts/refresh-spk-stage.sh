@@ -7,6 +7,7 @@ set -euo pipefail
 STAGE=${1:?staging root required}
 PLATFORM=${2:?platform required}
 DSM_VERSION=${3:?DSM version required}
+KERNEL_FLAVOR=${4:-${KERNEL_FLAVOR:-kernel5.10.55}}
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 PREFIX=/var/packages/syno-amdgpu-runtime/target
 TOOLCHAIN=${TOOLCHAIN_BIN:-/opt/${PLATFORM}/bin}/x86_64-pc-linux-gnu-gcc
@@ -31,4 +32,4 @@ ln -sfn amdgpu-ffprobe "$STAGE$PREFIX/bin/ffprobe"
 install -Dm755 "$ROOT/spk/package/bin/amdgpu-jellyfin-link.sh" "$STAGE$PREFIX/bin/amdgpu-jellyfin-link.sh"
 install -Dm755 "$ROOT/spk/package/bin/amdgpu-jellyfin-autoconfig.sh" "$STAGE$PREFIX/bin/amdgpu-jellyfin-autoconfig.sh"
 
-"$ROOT/scripts/package-spk.sh" "$STAGE" "$PLATFORM" "$DSM_VERSION"
+"$ROOT/scripts/package-spk.sh" "$STAGE" "$PLATFORM" "$DSM_VERSION" "$KERNEL_FLAVOR"

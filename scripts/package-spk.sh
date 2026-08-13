@@ -4,6 +4,7 @@ set -euo pipefail
 STAGE=${1:?staging root required}
 PLATFORM=${2:?platform required}
 DSM_VERSION=${3:?DSM version required}
+KERNEL_FLAVOR=${4:-kernel5.10.55}
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 PACKAGE=syno-amdgpu-runtime
 OUT=$ROOT/dist
@@ -25,6 +26,11 @@ case "$PLATFORM" in
     ;;
 esac
 
+case "$KERNEL_FLAVOR" in
+  kernel5.10.55|kernel4.4.x) ;;
+  *) echo "Unsupported kernel flavor: $KERNEL_FLAVOR" >&2; exit 2 ;;
+esac
+
 rm -rf "$ASSEMBLY"
 mkdir -p "$ASSEMBLY/scripts" "$ASSEMBLY/conf"
 cp "$ROOT/spk/INFO" "$ASSEMBLY/INFO"
@@ -36,6 +42,26 @@ VERSION=$(sed -n 's/^version="\([^"]*\)"$/\1/p' "$ASSEMBLY/INFO" | head -n 1)
 [[ -n $VERSION ]] || { echo 'Missing package version in INFO' >&2; exit 2; }
 cp "$ROOT/spk/scripts/"* "$ASSEMBLY/scripts/"
 cp "$ROOT/spk/conf/"* "$ASSEMBLY/conf/"
+case "$KERNEL_FLAVOR" in
+  kernel4.4.x)
+    # Kernel 4.4's backported AMDGPU scheduler can fault when amdgpu_top
+    # closes its DRM context. Keep the binary for explicit diagnostics, but
+    # do not expose it through /usr/bin or invoke it from package lifecycle.
+    cat > "$ASSEMBLY/scripts/postinst" <<'EOF'
+#!/bin/sh
+set -eu
+RUNTIME=/var/packages/syno-amdgpu-runtime/target
+test -c /dev/dri/renderD128 || echo "Warning: no AMD DRM render node found yet." >&2
+test -x "$RUNTIME/bin/amdgpu_top"
+echo "Notice: kernel 4.4 runtime keeps amdgpu_top as an experimental diagnostic tool; it is not registered in PATH." >&2
+"$RUNTIME/bin/helper/amdgpu-jellyfin-helper" patch
+"$RUNTIME/bin/helper/amdgpu-jellyfin-helper" configure
+"$RUNTIME/bin/helper/amdgpu-jellyfin-helper" restart
+EOF
+    chmod 0755 "$ASSEMBLY/scripts/postinst"
+    sed -i -E 's#^description=".*"$#description="AMD VA-API, RADV Vulkan, and monitoring runtime for DSM (kernel 4.4: amdgpu_top experimental)."#' "$ASSEMBLY/INFO"
+    ;;
+esac
 for icon in PACKAGE_ICON.PNG PACKAGE_ICON_256.PNG; do
   [[ -f "$ROOT/spk/$icon" ]] && cp "$ROOT/spk/$icon" "$ASSEMBLY/$icon"
 done
@@ -61,6 +87,6 @@ members=(INFO package.tgz scripts conf)
 for icon in PACKAGE_ICON.PNG PACKAGE_ICON_256.PNG; do
   [[ -f "$ASSEMBLY/$icon" ]] && members+=("$icon")
 done
-SPK="$OUT/${PACKAGE}-${VERSION}-${DSM_VERSION}-${FILE_ARCH}.spk"
+SPK="$OUT/${PACKAGE}-${VERSION}-${DSM_VERSION}-${FILE_ARCH}-${KERNEL_FLAVOR}.spk"
 tar -C "$ASSEMBLY" -cf "$SPK" "${members[@]}"
 echo "Built $SPK"
