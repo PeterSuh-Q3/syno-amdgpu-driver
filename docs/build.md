@@ -25,7 +25,7 @@ docker pull dante90/syno-compiler:7.4
 COMPILE_JOBS=12 ./scripts/build-kvmx64-pilot.sh
 ```
 
-파일럿 산출물은 `dist/syno-amdgpu-runtime-<version>-7.4-x86_64.spk`로 생성된다. 파일명은 범용 CPU 아키텍처를 사용하지만, `INFO`의 아키텍처는 계속 `kvmx64`로 패키징되므로 KVM DSM에서만 설치 대상으로 표시된다.
+파일럿 산출물은 `dist/syno-amdgpu-runtime-<version>-7.4-x86_64.spk`로 생성된다. 이 파일은 DSM 7.4의 지원 x86_64 플랫폼을 `INFO arch` 목록에 모두 선언한 범용 유저스페이스 런타임이다. 따라서 SA6400(`epyc7002`)에도 설치할 수 있다. 단, 커널 모듈 `amdgpu.ko`는 이 패키지와 별개로 해당 플랫폼·커널용 패키지가 설치되어 있어야 한다.
 
 ## Build container prerequisites
 

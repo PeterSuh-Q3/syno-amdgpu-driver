@@ -12,8 +12,17 @@ ASSEMBLY=$ROOT/work/spk-${PLATFORM}-${DSM_VERSION}
 # arch field.  Use the clearer CPU-architecture suffix for the distributable
 # filename so it is not mistaken for a hardware model.
 case "$PLATFORM" in
-  kvmx64) FILE_ARCH=x86_64 ;;
-  *)      FILE_ARCH=$PLATFORM ;;
+  kvmx64)
+    FILE_ARCH=x86_64
+    # This is the portable DSM 7.4 x86_64 runtime build.  The runtime is
+    # userspace-only; kernel compatibility remains the responsibility of each
+    # platform's separately managed amdgpu.ko package.
+    PACKAGE_ARCHES='apollolake avoton braswell broadwell broadwellnk broadwellnkv2 broadwellntbap bromolow denverton epyc7002 epyc7003 epyc7003ntb geminilake geminilakenk icelaked kvmx64 purley r1000 r1000nk v1000 v1000nk'
+    ;;
+  *)
+    FILE_ARCH=$PLATFORM
+    PACKAGE_ARCHES=$PLATFORM
+    ;;
 esac
 
 rm -rf "$ASSEMBLY"
@@ -22,7 +31,7 @@ cp "$ROOT/spk/INFO" "$ASSEMBLY/INFO"
 # The same source metadata template is used for every toolchain target.  DSM
 # uses INFO\'s arch field during installation, so replace the template value
 # with the platform actually being packaged.
-sed -i -E "s/^arch=\"[^\"]*\"$/arch=\"$PLATFORM\"/" "$ASSEMBLY/INFO"
+sed -i -E "s/^arch=\"[^\"]*\"$/arch=\"$PACKAGE_ARCHES\"/" "$ASSEMBLY/INFO"
 VERSION=$(sed -n 's/^version="\([^"]*\)"$/\1/p' "$ASSEMBLY/INFO" | head -n 1)
 [[ -n $VERSION ]] || { echo 'Missing package version in INFO' >&2; exit 2; }
 cp "$ROOT/spk/scripts/"* "$ASSEMBLY/scripts/"
