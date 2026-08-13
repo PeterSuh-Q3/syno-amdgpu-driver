@@ -12,8 +12,10 @@ PACKAGE=syno-amdgpu-runtime
 WORK="$ROOT/work/repackage-${PLATFORM}-${DSM_VERSION}"
 STAGE="$WORK/stage"
 TARGET="$STAGE/var/packages/$PACKAGE/target"
+TOOLCHAIN=${TOOLCHAIN_BIN:-/opt/${PLATFORM}/bin}/x86_64-pc-linux-gnu-gcc
 
 [[ -f "$INPUT" ]] || { echo "Missing input SPK: $INPUT" >&2; exit 2; }
+[[ -x $TOOLCHAIN ]] || { echo "Synology toolchain missing for $PLATFORM" >&2; exit 2; }
 rm -rf "$WORK"
 mkdir -p "$WORK/assembly" "$TARGET"
 tar -xf "$INPUT" -C "$WORK/assembly"
@@ -26,5 +28,11 @@ install -Dm755 "$ROOT/spk/package/bin/amdgpu-ffprobe" "$TARGET/bin/amdgpu-ffprob
 ln -sfn amdgpu-ffprobe "$TARGET/bin/ffprobe"
 install -Dm755 "$ROOT/spk/package/bin/amdgpu-jellyfin-link.sh" "$TARGET/bin/amdgpu-jellyfin-link.sh"
 install -Dm755 "$ROOT/spk/package/bin/amdgpu-jellyfin-autoconfig.sh" "$TARGET/bin/amdgpu-jellyfin-autoconfig.sh"
+install -Dm755 "$ROOT/spk/package/bin/amdgpu-plex-link.sh" "$TARGET/bin/amdgpu-plex-link.sh"
+mkdir -p "$TARGET/bin/helper"
+"$TOOLCHAIN" -O2 -Wall -Wextra -Werror \
+  "$ROOT/spk/package/bin/helper/amdgpu-plex-helper.c" \
+  -o "$TARGET/bin/helper/amdgpu-plex-helper"
+chmod 0755 "$TARGET/bin/helper/amdgpu-plex-helper"
 
 "$ROOT/scripts/package-spk.sh" "$STAGE" "$PLATFORM" "$DSM_VERSION" "$KERNEL_FLAVOR"

@@ -46,6 +46,13 @@ AMDGPU Runtime 적용 후
 > [!NOTE]
 > 설치 또는 업그레이드 중 Jellyfin 설정이 실제로 변경되면 재생·트랜스코딩 세션이 한 번 끊길 수 있습니다. 사용자 지정 FFmpeg 경로나 비어 있지 않은 트랜스코딩 임시 경로는 자동으로 덮어쓰지 않습니다.
 
+## Plex Media Server 연결
+
+Plex가 설치된 경우에는 Plex 서버 전체가 아니라 실제 변환 프로세스인 `Plex Transcoder`에만 AMD 런타임을 적용합니다. 원본 실행 파일은 `.pre-amdgpu-runtime.bak`으로 보관하며, AMDGPU Runtime 제거 시 자동 복원됩니다. 적용 또는 복원 때에만 Plex를 한 번 재시작합니다.
+
+> [!WARNING]
+> DSM 커널 4.4의 AMD VA-API는 실험적입니다. Plex가 `hardware decode accelerator found`를 보고하지 못하거나 GPU hang이 있으면 이 기능을 사용하지 말고 런타임을 제거한 뒤 재부팅하십시오.
+
 ## 코덱 지원 범위
 
 이 패키지는 AMD RadeonSI VA-API 런타임을 제공합니다. 실제 하드웨어 지원은 GPU 세대와 FFmpeg 빌드에 따라 달라집니다.

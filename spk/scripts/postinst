@@ -7,3 +7,5 @@ test -x "$RUNTIME/bin/amdgpu_top"
 "$RUNTIME/bin/helper/amdgpu-jellyfin-helper" patch
 "$RUNTIME/bin/helper/amdgpu-jellyfin-helper" configure
 "$RUNTIME/bin/helper/amdgpu-jellyfin-helper" restart
+"$RUNTIME/bin/helper/amdgpu-plex-helper" patch
+"$RUNTIME/bin/helper/amdgpu-plex-helper" restart

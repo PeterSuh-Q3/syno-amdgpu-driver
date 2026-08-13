@@ -1,5 +1,7 @@
 #!/bin/sh
 RUNTIME=/var/packages/syno-amdgpu-runtime/target
 [ -x "$RUNTIME/bin/helper/amdgpu-jellyfin-helper" ] && "$RUNTIME/bin/helper/amdgpu-jellyfin-helper" restore || true
+[ -x "$RUNTIME/bin/helper/amdgpu-plex-helper" ] && "$RUNTIME/bin/helper/amdgpu-plex-helper" restore || true
+[ -x "$RUNTIME/bin/helper/amdgpu-plex-helper" ] && "$RUNTIME/bin/helper/amdgpu-plex-helper" restart || true
 [ -x "$RUNTIME/bin/helper/amdgpu-path-helper" ] && "$RUNTIME/bin/helper/amdgpu-path-helper" remove || true
 exit 0

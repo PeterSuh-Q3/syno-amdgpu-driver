@@ -22,7 +22,10 @@ mkdir -p "$STAGE$PREFIX/bin/helper"
 "$TOOLCHAIN" -O2 -Wall -Wextra -Werror \
   "$ROOT/spk/package/bin/helper/amdgpu-jellyfin-helper.c" \
   -o "$STAGE$PREFIX/bin/helper/amdgpu-jellyfin-helper"
-chmod 0755 "$STAGE$PREFIX/bin/helper/amdgpu-path-helper" "$STAGE$PREFIX/bin/helper/amdgpu-jellyfin-helper"
+"$TOOLCHAIN" -O2 -Wall -Wextra -Werror \
+  "$ROOT/spk/package/bin/helper/amdgpu-plex-helper.c" \
+  -o "$STAGE$PREFIX/bin/helper/amdgpu-plex-helper"
+chmod 0755 "$STAGE$PREFIX/bin/helper/amdgpu-path-helper" "$STAGE$PREFIX/bin/helper/amdgpu-jellyfin-helper" "$STAGE$PREFIX/bin/helper/amdgpu-plex-helper"
 
 install -Dm755 "$ROOT/scripts/verify-runtime.sh" "$STAGE$PREFIX/bin/verify-amdgpu-runtime"
 install -Dm755 "$ROOT/spk/package/bin/amdgpu-env" "$STAGE$PREFIX/bin/amdgpu-env"
@@ -31,5 +34,6 @@ install -Dm755 "$ROOT/spk/package/bin/amdgpu-ffprobe" "$STAGE$PREFIX/bin/amdgpu-
 ln -sfn amdgpu-ffprobe "$STAGE$PREFIX/bin/ffprobe"
 install -Dm755 "$ROOT/spk/package/bin/amdgpu-jellyfin-link.sh" "$STAGE$PREFIX/bin/amdgpu-jellyfin-link.sh"
 install -Dm755 "$ROOT/spk/package/bin/amdgpu-jellyfin-autoconfig.sh" "$STAGE$PREFIX/bin/amdgpu-jellyfin-autoconfig.sh"
+install -Dm755 "$ROOT/spk/package/bin/amdgpu-plex-link.sh" "$STAGE$PREFIX/bin/amdgpu-plex-link.sh"
 
 "$ROOT/scripts/package-spk.sh" "$STAGE" "$PLATFORM" "$DSM_VERSION" "$KERNEL_FLAVOR"

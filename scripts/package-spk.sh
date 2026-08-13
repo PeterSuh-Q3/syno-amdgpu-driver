@@ -57,6 +57,8 @@ echo "Notice: kernel 4.4 runtime keeps amdgpu_top as an experimental diagnostic 
 "$RUNTIME/bin/helper/amdgpu-jellyfin-helper" patch
 "$RUNTIME/bin/helper/amdgpu-jellyfin-helper" configure
 "$RUNTIME/bin/helper/amdgpu-jellyfin-helper" restart
+"$RUNTIME/bin/helper/amdgpu-plex-helper" patch
+"$RUNTIME/bin/helper/amdgpu-plex-helper" restart
 EOF
     chmod 0755 "$ASSEMBLY/scripts/postinst"
     sed -i -E 's#^description=".*"$#description="AMD VA-API, RADV Vulkan, and monitoring runtime for DSM (kernel 4.4: amdgpu_top experimental)."#' "$ASSEMBLY/INFO"
