@@ -48,10 +48,10 @@ AMDGPU Runtime 적용 후
 
 ## Plex Media Server 연결
 
-Plex가 설치된 경우에는 Plex 서버 전체가 아니라 실제 변환 프로세스인 `Plex Transcoder`에만 AMD 런타임을 적용합니다. 원본 실행 파일은 `.pre-amdgpu-runtime.bak`으로 보관하며, AMDGPU Runtime 제거 시 자동 복원됩니다. 적용 또는 복원 때에만 Plex를 한 번 재시작합니다.
+Plex가 설치된 경우에는 Plex 서버 전체가 아니라 실제 변환 프로세스인 `Plex Transcoder`에만 AMD 런타임을 적용합니다. 원본 실행 파일은 `.pre-amdgpu-runtime.bak`으로 보관하며, AMDGPU Runtime 제거 시 자동 복원됩니다. 적용 또는 복원 때에만 Plex를 한 번 재시작합니다. 이 자동 연결은 **커널 5.10.55 패키지에서만** 사용합니다.
 
 > [!WARNING]
-> DSM 커널 4.4의 AMD VA-API는 실험적입니다. Plex가 `hardware decode accelerator found`를 보고하지 못하거나 GPU hang이 있으면 이 기능을 사용하지 말고 런타임을 제거한 뒤 재부팅하십시오.
+> DSM 커널 4.4의 AMD VA-API는 실험적이며 Plex 자동 연결 대상에서 제외됩니다. GPU hang 또는 `BUG: unable to handle kernel paging request`가 발생한 시스템은 반드시 재부팅하십시오.
 
 ## 코덱 지원 범위
 
