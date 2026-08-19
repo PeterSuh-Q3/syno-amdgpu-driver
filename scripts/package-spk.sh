@@ -61,6 +61,19 @@ echo "Notice: kernel 4.4 runtime keeps amdgpu_top as an experimental diagnostic 
 # process closes a VA-API DRM context.  Do not inject the Plex runtime here.
 EOF
     chmod 0755 "$ASSEMBLY/scripts/postinst"
+    # start-stop-status normally self-heals the /usr/bin/amdgpu_top shim on
+    # every package start; kernel 4.4 must never create that shim, so ship a
+    # copy without the self-heal step instead of the shared spk/scripts one.
+    cat > "$ASSEMBLY/scripts/start-stop-status" <<'EOF'
+#!/bin/sh
+case "${1:-}" in
+  start|status) exit 0 ;;
+  stop) exit 0 ;;
+  log) exit 1 ;;
+  *) exit 1 ;;
+esac
+EOF
+    chmod 0755 "$ASSEMBLY/scripts/start-stop-status"
     sed -i -E 's#^description=".*"$#description="AMD VA-API, RADV Vulkan, and monitoring runtime for DSM (kernel 4.4: amdgpu_top experimental)."#' "$ASSEMBLY/INFO"
     ;;
 esac
