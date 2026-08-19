@@ -6,7 +6,16 @@
 # DSM invokes this file again after installation and during status polling, so
 # mutating Jellyfin here can race its own start-up.
 case "${1:-}" in
-  start|status) exit 0 ;;
+  start)
+    # Self-heal the /usr/bin/amdgpu_top shim: on some DSM units postinst runs
+    # before the privilege-declared setuid bit on amdgpu-path-helper is
+    # applied, so the first symlink attempt silently fails. Retrying here
+    # (idempotent) repairs the shim without requiring a reinstall.
+    RUNTIME=/var/packages/syno-amdgpu-runtime/target
+    [ -x "$RUNTIME/bin/helper/amdgpu-path-helper" ] && "$RUNTIME/bin/helper/amdgpu-path-helper" install || true
+    exit 0
+    ;;
+  status) exit 0 ;;
   stop) exit 0 ;;
   log) exit 1 ;;
   *) exit 1 ;;
