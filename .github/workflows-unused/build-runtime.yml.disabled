@@ -1,3 +1,8 @@
+# UNUSED: actual builds run on a self-managed Ubuntu VM host with the
+# dante90/syno-compiler:7.4 Docker builder (see docs/build.md), not GitHub
+# Actions. Kept here as .disabled (outside .github/workflows/) so it cannot
+# run and is not mistaken for the active build path. Do not move this back
+# into .github/workflows/ without re-confirming the build path with the user.
 name: Build DSM AMDGPU Runtime
 
 on:
