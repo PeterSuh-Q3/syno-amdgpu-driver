@@ -1,6 +1,6 @@
 # Synology AMDGPU Runtime — 사용자 요약 릴리즈 노트
 
-> 대상 버전: **0.3.3 ~ 0.3.5**
+> 대상 버전: **0.3.3 ~ 0.4.1**
 
 Synology AMDGPU Runtime은 DSM에 이미 `amdgpu.ko` 커널 모듈이 설치되어 있고 AMD GPU가 정상 인식된 환경에, AMD GPU용 영상·그래픽 사용자 공간 라이브러리를 추가하는 SPK입니다.
 
