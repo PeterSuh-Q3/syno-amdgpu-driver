@@ -53,6 +53,8 @@ Plex Media Server는 자체 Transcoder를 사용합니다. 보안상 AMDGPU Runt
 > [!WARNING]
 > DSM 커널 4.4의 AMD VA-API는 실험적이며 Plex 자동 연결 대상에서 제외됩니다. GPU hang 또는 `BUG: unable to handle kernel paging request`가 발생한 시스템은 반드시 재부팅하십시오.
 
+AMD GPU DRM render node(`renderD128`의 PCI vendor가 `0x1002`)가 없는 NAS에서는 패키지를 설치해도 Jellyfin/Plex 설정과 PATH를 변경하지 않는 no-op 상태로 끝납니다. Intel iGPU만 있는 NAS도 이 범주에 포함되며, 이 경우 GPU 기능은 제공되지 않습니다.
+
 ## 코덱 지원 범위
 
 이 패키지는 AMD RadeonSI VA-API 런타임을 제공합니다. 실제 하드웨어 지원은 GPU 세대와 FFmpeg 빌드에 따라 달라집니다.

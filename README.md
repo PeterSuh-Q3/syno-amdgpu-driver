@@ -19,6 +19,8 @@ Plex Media Server는 자체 Transcoder를 사용한다. 보안상 AMDGPU Runtime
 
 > 커널 4.4 환경의 VA-API는 실험적이다. `amdgpu_top`은 PATH에 등록하지 않으며, Plex/Jellyfin VA-API 문제로 kernel Oops·GPU hang이 발생하면 런타임을 제거하고 재부팅한 뒤 로그를 확보한다.
 
+AMD GPU의 DRM render node(`renderD128`의 PCI vendor가 `0x1002`)가 없는 NAS에서는 SPK 자체는 설치할 수 있지만, 런타임은 no-op으로 동작한다. 따라서 Intel iGPU만 있는 NAS도 Jellyfin/Plex 설정, `amdgpu_top` PATH 링크, 전역 라이브러리 경로를 변경하지 않는다.
+
 ## 검증 기준
 
 ```bash

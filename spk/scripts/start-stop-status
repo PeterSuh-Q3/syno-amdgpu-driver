@@ -12,7 +12,7 @@ case "${1:-}" in
     # applied, so the first symlink attempt silently fails. Retrying here
     # (idempotent) repairs the shim without requiring a reinstall.
     RUNTIME=/var/packages/syno-amdgpu-runtime/target
-    [ -x "$RUNTIME/bin/helper/amdgpu-path-helper" ] && "$RUNTIME/bin/helper/amdgpu-path-helper" install || true
+    [ -c /dev/dri/renderD128 ] && [ "$(cat /sys/class/drm/renderD128/device/vendor 2>/dev/null || true)" = "0x1002" ] && [ -x "$RUNTIME/bin/helper/amdgpu-path-helper" ] && "$RUNTIME/bin/helper/amdgpu-path-helper" install || true
     exit 0
     ;;
   status) exit 0 ;;

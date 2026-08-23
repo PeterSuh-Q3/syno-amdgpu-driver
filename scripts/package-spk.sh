@@ -51,7 +51,10 @@ case "$KERNEL_FLAVOR" in
 #!/bin/sh
 set -eu
 RUNTIME=/var/packages/syno-amdgpu-runtime/target
-test -c /dev/dri/renderD128 || echo "Warning: no AMD DRM render node found yet." >&2
+if [ ! -c /dev/dri/renderD128 ] || [ "$(cat /sys/class/drm/renderD128/device/vendor 2>/dev/null || true)" != "0x1002" ]; then
+  echo "Notice: no AMD DRM render node; runtime installed without media-server or PATH integration." >&2
+  exit 0
+fi
 test -x "$RUNTIME/bin/amdgpu_top"
 echo "Notice: kernel 4.4 runtime keeps amdgpu_top as an experimental diagnostic tool; it is not registered in PATH." >&2
 "$RUNTIME/bin/helper/amdgpu-jellyfin-helper" patch
