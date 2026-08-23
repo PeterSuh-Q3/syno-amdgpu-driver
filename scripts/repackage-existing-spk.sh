@@ -28,13 +28,12 @@ install -Dm755 "$ROOT/spk/package/bin/amdgpu-ffprobe" "$TARGET/bin/amdgpu-ffprob
 ln -sfn amdgpu-ffprobe "$TARGET/bin/ffprobe"
 install -Dm755 "$ROOT/spk/package/bin/amdgpu-jellyfin-link.sh" "$TARGET/bin/amdgpu-jellyfin-link.sh"
 install -Dm755 "$ROOT/spk/package/bin/amdgpu-jellyfin-autoconfig.sh" "$TARGET/bin/amdgpu-jellyfin-autoconfig.sh"
-install -Dm755 "$ROOT/spk/package/bin/amdgpu-plex-link.sh" "$TARGET/bin/amdgpu-plex-link.sh"
 mkdir -p "$TARGET/bin/helper"
 "$TOOLCHAIN" -O2 -Wall -Wextra -Werror \
-  "$ROOT/spk/package/bin/helper/amdgpu-plex-helper.c" \
-  -o "$TARGET/bin/helper/amdgpu-plex-helper"
-chmod 0755 "$TARGET/bin/helper/amdgpu-plex-helper"
-chown root:root "$TARGET/bin/helper/amdgpu-plex-helper"
-chmod 4755 "$TARGET/bin/helper/amdgpu-plex-helper"
+  "$ROOT/spk/package/bin/helper/amdgpu-plex-restore-helper.c" \
+  -o "$TARGET/bin/helper/amdgpu-plex-restore-helper"
+chmod 0755 "$TARGET/bin/helper/amdgpu-plex-restore-helper"
+chown root:root "$TARGET/bin/helper/amdgpu-plex-restore-helper"
+chmod 4755 "$TARGET/bin/helper/amdgpu-plex-restore-helper"
 
 "$ROOT/scripts/package-spk.sh" "$STAGE" "$PLATFORM" "$DSM_VERSION" "$KERNEL_FLAVOR"

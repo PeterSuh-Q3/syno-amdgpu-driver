@@ -57,6 +57,7 @@ echo "Notice: kernel 4.4 runtime keeps amdgpu_top as an experimental diagnostic 
 "$RUNTIME/bin/helper/amdgpu-jellyfin-helper" patch
 "$RUNTIME/bin/helper/amdgpu-jellyfin-helper" configure
 "$RUNTIME/bin/helper/amdgpu-jellyfin-helper" restart
+"$RUNTIME/bin/helper/amdgpu-plex-restore-helper" || echo "Warning: Plex legacy wrapper was not restored automatically." >&2
 # Kernel 4.4's backported AMDGPU scheduler is not stable when a media
 # process closes a VA-API DRM context.  Do not inject the Plex runtime here.
 EOF

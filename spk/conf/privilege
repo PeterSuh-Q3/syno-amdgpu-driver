@@ -14,7 +14,13 @@
       "permission": "6550"
     },
     {
-      "relpath": "bin/helper/amdgpu-plex-helper",
+      "relpath": "bin/amdgpu-jellyfin-link.sh",
+      "user": "root",
+      "group": "package",
+      "permission": "0550"
+    },
+    {
+      "relpath": "bin/helper/amdgpu-plex-restore-helper",
       "user": "root",
       "group": "package",
       "permission": "6550"

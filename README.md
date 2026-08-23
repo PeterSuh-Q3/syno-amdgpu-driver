@@ -15,7 +15,7 @@ AMD GPU가 장착된 Synology DSM 7.x 시스템을 위한 사용자 공간 그�
 
 DSM의 FFmpeg 7/8 패키지는 Vulkan 및 VA-API 지원으로 빌드되어 있으므로, 이 패키지는 FFmpeg를 대체하지 않습니다. 설치 뒤 `LIBVA_DRIVER_NAME=radeonsi`로 FFmpeg/Jellyfin이 AMD VA-API를 이용할 수 있게 하는 것이 목적입니다.
 
-Plex Media Server가 설치돼 있으면 패키지는 Plex 서버 전체가 아닌 `Plex Transcoder` 실행 파일만 원본 백업 뒤 AMD 런타임 래퍼로 연결한다. 제거 시 원본 바이너리를 복원한다. Plex 업데이트로 트랜스코더가 교체된 경우에는 런타임 패키지를 다시 설치하거나 업그레이드해 연결을 다시 적용해야 한다.
+Plex Media Server는 자체 Transcoder를 사용한다. 보안상 AMDGPU Runtime은 Plex 실행 파일을 자동으로 교체하거나 Plex 경로에 root 권한으로 쓰지 않는다. 이전 버전의 Plex 래퍼가 남아 있으면 업그레이드 시 정규 파일·심볼릭 링크 여부를 검증한 뒤 원본만 복원한다.
 
 > 커널 4.4 환경의 VA-API는 실험적이다. `amdgpu_top`은 PATH에 등록하지 않으며, Plex/Jellyfin VA-API 문제로 kernel Oops·GPU hang이 발생하면 런타임을 제거하고 재부팅한 뒤 로그를 확보한다.
 

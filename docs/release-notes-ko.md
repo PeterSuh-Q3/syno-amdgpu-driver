@@ -48,7 +48,7 @@ AMDGPU Runtime 적용 후
 
 ## Plex Media Server 연결
 
-Plex가 설치된 경우에는 Plex 서버 전체가 아니라 실제 변환 프로세스인 `Plex Transcoder`에만 AMD 런타임을 적용합니다. 원본 실행 파일은 `.pre-amdgpu-runtime.bak`으로 보관하며, AMDGPU Runtime 제거 시 자동 복원됩니다. 적용 또는 복원 때에만 Plex를 한 번 재시작합니다. 이 자동 연결은 **커널 5.10.55 패키지에서만** 사용합니다.
+Plex Media Server는 자체 Transcoder를 사용합니다. 보안상 AMDGPU Runtime은 Plex 실행 파일을 자동 교체하지 않으며 Plex 소유 경로에 root 권한으로 쓰지 않습니다. 이전 버전에서 생성한 Plex 래퍼가 남아 있으면 업그레이드 과정에서 정규 파일·심볼릭 링크 여부를 검증한 뒤 원본만 복원합니다.
 
 > [!WARNING]
 > DSM 커널 4.4의 AMD VA-API는 실험적이며 Plex 자동 연결 대상에서 제외됩니다. GPU hang 또는 `BUG: unable to handle kernel paging request`가 발생한 시스템은 반드시 재부팅하십시오.
@@ -102,3 +102,4 @@ NAS의 플랫폼과 같은 파일을 선택해야 합니다. 현재 DSM 7.4용�
 | 0.3.3 | VA-API·RADV Vulkan·Rusticl OpenCL 런타임과 GPU 진단 도구 제공 |
 | 0.3.4 | Jellyfin 패키지 자동 감지 및 FFmpeg VA-API 래퍼 자동 연결 |
 | 0.3.5 | `/dev/shm/jellyfin` 기본 작업 공간, 변경 시 Jellyfin 1회 재시작 |
+| 0.4.1 | privilege helper가 참조하는 runtime payload를 root 소유·비쓰기 상태로 고정하고, Plex 실행 파일 자동 교체를 중단하며 이전 래퍼는 안전 복원 |

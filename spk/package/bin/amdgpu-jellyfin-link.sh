@@ -10,6 +10,35 @@ AMD=/var/packages/syno-amdgpu-runtime/target/bin/amdgpu-ffmpeg
 AUTOCONFIG=/var/packages/syno-amdgpu-runtime/target/bin/amdgpu-jellyfin-autoconfig.sh
 RESTART_MARKER=/var/packages/syno-amdgpu-runtime/var/jellyfin-restart-required
 
+# DSM leaves ordinary package payload files writable by the package account.
+# This script is entered only through a privilege-declared helper, so use that
+# root transition to lock every payload item that can influence a privileged
+# operation.  Keep the individual helpers untouched: DSM owns their exact
+# root:package / setuid modes via conf/privilege, while their parent directory
+# is made non-writable to prevent replacement.
+lock_payload() {
+  for dir in "$RUNTIME/lib" "$RUNTIME/etc" "$RUNTIME/share" "$RUNTIME/var"; do
+    [ -d "$dir" ] || continue
+    chown -R root:root "$dir"
+    chmod -R go-w "$dir"
+  done
+  [ -d "$RUNTIME/bin" ] || return 0
+  chown root:root "$RUNTIME/bin"
+  chmod 0755 "$RUNTIME/bin"
+  for entry in "$RUNTIME/bin"/*; do
+    [ "$entry" = "$RUNTIME/bin/helper" ] && continue
+    [ -e "$entry" ] || continue
+    chown root:root "$entry"
+    chmod go-w "$entry"
+  done
+  if [ -d "$RUNTIME/bin/helper" ]; then
+    chown root:root "$RUNTIME/bin/helper"
+    chmod 0755 "$RUNTIME/bin/helper"
+  fi
+}
+
+lock_payload
+
 mark_restart() {
   mkdir -p "$(dirname "$RESTART_MARKER")"
   : > "$RESTART_MARKER"
