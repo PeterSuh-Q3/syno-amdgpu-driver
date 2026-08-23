@@ -3,6 +3,7 @@
 # launch argument and preserves the original service script for uninstall.
 set -eu
 
+RUNTIME=/var/packages/syno-amdgpu-runtime/target
 JELLYFIN_SETUP=/var/packages/jellyfin/scripts/service-setup
 BACKUP=${JELLYFIN_SETUP}.pre-amdgpu-runtime.bak
 STOCK=/var/packages/ffmpeg7/target/bin/ffmpeg
