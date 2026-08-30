@@ -26,22 +26,21 @@ progress() {
   [[ -n ${STATUS_FILE:-} ]] || return 0
   local phase="$1"
   case "$phase" in
-    libdrm) phase='2/5 libdrm'; case "$3" in configure) set -- "$1" "$2" '1/3 configure';; build) set -- "$1" "$2" '2/3 build';; install) set -- "$1" "$2" '3/3 install';; esac ;;
-    libva) phase='3/5 libva'; case "$3" in configure) set -- "$1" "$2" '1/3 configure';; build) set -- "$1" "$2" '2/3 build';; install) set -- "$1" "$2" '3/3 install';; esac ;;
-    mesa-prereqs) phase='4/5 mesa'; case "$3" in ocl-icd) set -- "$1" "$2" '1/6 ocl-icd';; zlib) set -- "$1" "$2" '2/6 zlib';; elfutils) set -- "$1" "$2" '3/6 elfutils';; SPIRV-Tools) set -- "$1" "$2" '4/6 SPIRV-Tools';; LLVMSPIRVLib) set -- "$1" "$2" '5/6 LLVMSPIRVLib';; esac ;;
-    mesa) phase='4/5 mesa'; case "$3" in configure) set -- "$1" "$2" '6/6 configure';; install) set -- "$1" "$2" '6/6 install';; esac ;;
-    amdgpu_top) phase='5/5 amdgpu_top'; case "$3" in cargo) set -- "$1" "$2" '1/2 cargo';; package) set -- "$1" "$2" '2/2 package';; esac ;;
+    libdrm) phase='2/4 libdrm'; case "$3" in configure) set -- "$1" "$2" '1/3 configure';; build) set -- "$1" "$2" '2/3 build';; install) set -- "$1" "$2" '3/3 install';; esac ;;
+    libva) phase='3/4 libva'; case "$3" in configure) set -- "$1" "$2" '1/3 configure';; build) set -- "$1" "$2" '2/3 build';; install) set -- "$1" "$2" '3/3 install';; esac ;;
+    mesa-prereqs) phase='4/4 mesa'; case "$3" in ocl-icd) set -- "$1" "$2" '1/6 ocl-icd';; zlib) set -- "$1" "$2" '2/6 zlib';; elfutils) set -- "$1" "$2" '3/6 elfutils';; SPIRV-Tools) set -- "$1" "$2" '4/6 SPIRV-Tools';; LLVMSPIRVLib) set -- "$1" "$2" '5/6 LLVMSPIRVLib';; esac ;;
+    mesa) phase='4/4 mesa'; case "$3" in configure) set -- "$1" "$2" '6/6 configure';; install) set -- "$1" "$2" '6/6 install';; esac ;;
   esac
   printf '%s\t%s\t%s\t%s\n' "$phase" "$2" "${3:-}" "$(date +%s)" > "$STATUS_FILE"
 }
 
 # Populate sources/ with the exact archives in build/versions.env, unpacked as
-# libdrm/, libva/, mesa/, and amdgpu_top/. Release builds require locked hashes.
+# libdrm/, libva/, and mesa/. Release builds require locked hashes.
 if [[ ${RELEASE:-0} == 1 ]] && grep -q ' TODO$' "$ROOT/build/sources.lock"; then
   echo "sources.lock is incomplete; refusing a release build" >&2
   exit 1
 fi
-for required in libdrm libva zlib elfutils mesa ocl-icd amdgpu_top SPIRV-Tools spirv-llvm-translator; do
+for required in libdrm libva zlib elfutils mesa ocl-icd SPIRV-Tools spirv-llvm-translator; do
   [[ -d $SOURCE_ROOT/$required ]] || { echo "missing source: $SOURCE_ROOT/$required" >&2; exit 1; }
 done
 "$ROOT/scripts/apply-rusticl-patches.sh" "$SOURCE_ROOT/mesa"
@@ -192,17 +191,6 @@ if [[ -d "$LLVM_TARGET_ROOT/lib/clang/18/include" ]]; then
   mkdir -p "$STAGE$PREFIX/lib/clang/18"
   cp -a "$LLVM_TARGET_ROOT/lib/clang/18/include" "$STAGE$PREFIX/lib/clang/18/"
 fi
-
-# This upstream feature opens the staged libdrm at runtime, avoiding a DSM
-# global-library change and allowing the SPK to carry its own ABI-matched copy.
-export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=$TOOLCHAIN/x86_64-pc-linux-gnu-gcc
-export RUSTFLAGS="-C link-arg=-Wl,-rpath,\$ORIGIN/../lib"
-progress amdgpu_top running cargo
-pushd "$SOURCE_ROOT/amdgpu_top" >/dev/null
-CARGO_BUILD_JOBS="$COMPILE_JOBS" CARGO_TARGET_DIR="$BUILD_ROOT/cargo-target" cargo build --release --target x86_64-unknown-linux-gnu --no-default-features --features dynamic_loading_package
-install -Dm755 "$BUILD_ROOT/cargo-target/x86_64-unknown-linux-gnu/release/amdgpu_top" "$STAGE$PREFIX/bin/amdgpu_top"
-progress amdgpu_top running package
-popd >/dev/null
 
 # DSM applies root ownership and setuid only to the explicitly declared
 # privilege tool.  Refresh these integration files immediately before

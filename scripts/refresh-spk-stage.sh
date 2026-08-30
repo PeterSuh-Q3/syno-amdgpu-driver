@@ -15,10 +15,13 @@ TOOLCHAIN=${TOOLCHAIN_BIN:-/opt/${PLATFORM}/bin}/x86_64-pc-linux-gnu-gcc
 [[ -d "$STAGE$PREFIX" ]] || { echo "Missing staged runtime: $STAGE$PREFIX" >&2; exit 2; }
 [[ -x $TOOLCHAIN ]] || { echo "Synology toolchain missing for $PLATFORM" >&2; exit 2; }
 
+# amdgpu_top and its PATH-shim helper moved to the standalone
+# https://github.com/PeterSuh-Q3/syno-amdgpu-top package - it never depended
+# on Mesa/libva, so it no longer ships here. Remove any copy carried over
+# from an older staged runtime.
+rm -f "$STAGE$PREFIX/bin/amdgpu_top" "$STAGE$PREFIX/bin/helper/amdgpu-path-helper"
+
 mkdir -p "$STAGE$PREFIX/bin/helper"
-"$TOOLCHAIN" -O2 -Wall -Wextra -Werror \
-  "$ROOT/spk/package/bin/helper/amdgpu-path-helper.c" \
-  -o "$STAGE$PREFIX/bin/helper/amdgpu-path-helper"
 "$TOOLCHAIN" -O2 -Wall -Wextra -Werror \
   "$ROOT/spk/package/bin/helper/amdgpu-jellyfin-helper.c" \
   -o "$STAGE$PREFIX/bin/helper/amdgpu-jellyfin-helper"
@@ -28,8 +31,8 @@ mkdir -p "$STAGE$PREFIX/bin/helper"
 # Package lifecycle scripts run as the package account on DSM.  These narrow
 # helpers are intentionally setuid-root so they can modify only the fixed
 # third-party integration files and then clear their environment.
-chown root:root "$STAGE$PREFIX/bin/helper/amdgpu-path-helper" "$STAGE$PREFIX/bin/helper/amdgpu-jellyfin-helper" "$STAGE$PREFIX/bin/helper/amdgpu-plex-restore-helper"
-chmod 4755 "$STAGE$PREFIX/bin/helper/amdgpu-path-helper" "$STAGE$PREFIX/bin/helper/amdgpu-jellyfin-helper" "$STAGE$PREFIX/bin/helper/amdgpu-plex-restore-helper"
+chown root:root "$STAGE$PREFIX/bin/helper/amdgpu-jellyfin-helper" "$STAGE$PREFIX/bin/helper/amdgpu-plex-restore-helper"
+chmod 4755 "$STAGE$PREFIX/bin/helper/amdgpu-jellyfin-helper" "$STAGE$PREFIX/bin/helper/amdgpu-plex-restore-helper"
 
 install -Dm755 "$ROOT/scripts/verify-runtime.sh" "$STAGE$PREFIX/bin/verify-amdgpu-runtime"
 install -Dm755 "$ROOT/spk/package/bin/amdgpu-env" "$STAGE$PREFIX/bin/amdgpu-env"

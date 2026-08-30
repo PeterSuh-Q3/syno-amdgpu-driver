@@ -22,6 +22,11 @@ tar -xf "$INPUT" -C "$WORK/assembly"
 [[ -f "$WORK/assembly/package.tgz" ]] || { echo 'Input SPK has no package.tgz' >&2; exit 2; }
 tar -xzf "$WORK/assembly/package.tgz" -C "$TARGET"
 
+# amdgpu_top and its PATH-shim helper moved to the standalone
+# https://github.com/PeterSuh-Q3/syno-amdgpu-top package - remove any copy
+# carried over from the input SPK.
+rm -f "$TARGET/bin/amdgpu_top" "$TARGET/bin/helper/amdgpu-path-helper"
+
 install -Dm755 "$ROOT/spk/package/bin/amdgpu-env" "$TARGET/bin/amdgpu-env"
 install -Dm755 "$ROOT/spk/package/bin/amdgpu-ffmpeg" "$TARGET/bin/amdgpu-ffmpeg"
 install -Dm755 "$ROOT/spk/package/bin/amdgpu-ffprobe" "$TARGET/bin/amdgpu-ffprobe"

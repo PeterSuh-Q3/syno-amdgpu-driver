@@ -9,6 +9,8 @@ AMD GPU가 장착된 Synology DSM 7.x 시스템을 위한 사용자 공간 그�
 - 공통 런타임: `libdrm`, `libva`, Vulkan loader
 - 진단 도구: `vainfo`, `vulkaninfo`
 
+GPU 사용률·VRAM·온도 모니터링(`amdgpu_top`)이 필요하면 별도 패키지인 [syno-amdgpu-top](https://github.com/PeterSuh-Q3/syno-amdgpu-top)을 설치하세요. `amdgpu_top`은 Mesa/VA-API에 의존하지 않는 독립 도구라 이 런타임과 분리되어 있습니다.
+
 ## 범위
 
 지원 대상은 DRM render node (`/dev/dri/renderD*`)가 있고, 펌웨어 초기화까지 완료된 AMD GPU입니다. NVIDIA 커널 모듈이나 CUDA/ROCm은 범위에 포함하지 않습니다.
@@ -17,9 +19,9 @@ DSM의 FFmpeg 7/8 패키지는 Vulkan 및 VA-API 지원으로 빌드되어 있�
 
 Plex Media Server는 자체 Transcoder를 사용한다. 보안상 AMDGPU Runtime은 Plex 실행 파일을 자동으로 교체하거나 Plex 경로에 root 권한으로 쓰지 않는다. 이전 버전의 Plex 래퍼가 남아 있으면 업그레이드 시 정규 파일·심볼릭 링크 여부를 검증한 뒤 원본만 복원한다.
 
-> 커널 4.4 환경의 VA-API는 실험적이다. `amdgpu_top`은 PATH에 등록하지 않으며, Plex/Jellyfin VA-API 문제로 kernel Oops·GPU hang이 발생하면 런타임을 제거하고 재부팅한 뒤 로그를 확보한다.
+> 커널 4.4 환경의 VA-API는 실험적이다. 이 kernel4.4.x 패키지는 Jellyfin/Plex 하드웨어 트랜스코딩 연동 자체를 적용하지 않으며, kernel Oops·GPU hang이 발생하면 런타임을 제거하고 재부팅한 뒤 로그를 확보한다.
 
-AMD GPU의 DRM render node(`renderD128`의 PCI vendor가 `0x1002`)가 없는 NAS에서는 SPK 자체는 설치할 수 있지만, 런타임은 no-op으로 동작한다. 따라서 Intel iGPU만 있는 NAS도 Jellyfin/Plex 설정, `amdgpu_top` PATH 링크, 전역 라이브러리 경로를 변경하지 않는다.
+AMD GPU의 DRM render node(`renderD128`의 PCI vendor가 `0x1002`)가 없는 NAS에서는 SPK 자체는 설치할 수 있지만, 런타임은 no-op으로 동작한다. 따라서 Intel iGPU만 있는 NAS도 Jellyfin/Plex 설정이나 전역 라이브러리 경로를 변경하지 않는다.
 
 ## 검증 기준
 

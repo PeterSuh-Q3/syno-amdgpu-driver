@@ -2,12 +2,6 @@
   "defaults": { "run-as": "package" },
   "tool": [
     {
-      "relpath": "bin/helper/amdgpu-path-helper",
-      "user": "root",
-      "group": "package",
-      "permission": "6550"
-    },
-    {
       "relpath": "bin/helper/amdgpu-jellyfin-helper",
       "user": "root",
       "group": "package",

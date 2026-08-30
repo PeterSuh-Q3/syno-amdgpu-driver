@@ -27,8 +27,8 @@ COMPILE_JOBS=12 ./scripts/build-kvmx64-pilot.sh
 
 범용 런타임은 같은 사용자 공간 바이너리를 커널 계열별 안전 정책으로 나누어 패킹한다.
 
-- `dist/syno-amdgpu-runtime-<version>-7.4-x86_64-kernel5.10.55.spk`: kernel 5.10.55용. `amdgpu_top`을 PATH에 등록한다.
-- `dist/syno-amdgpu-runtime-<version>-7.4-x86_64-kernel4.4.x.spk`: kernel 4.4.x용. `amdgpu_top` 바이너리는 보존하지만 kernel 4 DRM 종료 경로 안정화 전까지 PATH에 등록하지 않는 실험적 진단 도구다.
+- `dist/syno-amdgpu-runtime-<version>-7.4-x86_64-kernel5.10.55.spk`: kernel 5.10.55용. Jellyfin/Plex VA-API 하드웨어 트랜스코딩 연동을 적용한다.
+- `dist/syno-amdgpu-runtime-<version>-7.4-x86_64-kernel4.4.x.spk`: kernel 4.4.x용. DRM 종료 경로 안정화 전까지 Jellyfin/Plex 연동을 적용하지 않는다.
 
 두 파일 모두 DSM 7.4의 지원 x86_64 플랫폼을 `INFO arch` 목록에 선언한 범용 유저스페이스 런타임이다. 단, 커널 모듈 `amdgpu.ko`는 이 패키지와 별개로 해당 플랫폼·커널용 패키지가 설치되어 있어야 한다.
 
@@ -44,13 +44,12 @@ COMPILE_JOBS=12 ./scripts/build-kvmx64-pilot.sh
 
 ## Sources and reproducibility
 
-`build/versions.env`의 네 upstream archive를 내려받아 다음 이름으로 `sources/`에 푼다.
+`build/versions.env`의 upstream archive를 내려받아 다음 이름으로 `sources/`에 푼다.
 
 ```text
 sources/libdrm
 sources/libva
 sources/mesa
-sources/amdgpu_top
 sources/SPIRV-Tools
 sources/spirv-llvm-translator
 ```
@@ -69,9 +68,11 @@ sources/spirv-llvm-translator
 PLATFORMS_FILE=build/ALL-PLATFORMS BUILD_JOBS=2 ./scripts/full-build.sh
 ```
 
-빌드 중에는 플랫폼별 주 단계와 `DETAIL`이 실시간 표시된다. 예를 들어 `4/5 mesa | running | SPIRV-Tools`처럼 표시되며, Ninja 카운트도 함께 보인다. 세부 로그는 `logs/`, 상태 파일은 `work/status/`에 남는다.
+빌드 중에는 플랫폼별 주 단계와 `DETAIL`이 실시간 표시된다. 예를 들어 `4/4 mesa | running | SPIRV-Tools`처럼 표시되며, Ninja 카운트도 함께 보인다. 세부 로그는 `logs/`, 상태 파일은 `work/status/`에 남는다.
 
-Mesa와 `amdgpu_top`은 패키지 내부의 라이브러리를 찾도록 RPATH/환경 래퍼를 사용한다. DSM의 `/usr/lib`를 수정하거나 덮어쓰지 않는다.
+Mesa는 패키지 내부의 라이브러리를 찾도록 RPATH/환경 래퍼를 사용한다. DSM의 `/usr/lib`를 수정하거나 덮어쓰지 않는다.
+
+GPU 모니터링(`amdgpu_top`)은 이 저장소에서 분리되어 [syno-amdgpu-top](https://github.com/PeterSuh-Q3/syno-amdgpu-top)에서 별도로 빌드/배포한다.
 ## GitHub Actions build
 
 The **Build DSM AMDGPU Runtime** workflow runs on a GitHub-hosted Ubuntu runner.

@@ -17,7 +17,7 @@ flowchart LR
 
 - Jellyfin에서 AMD GPU의 **VA-API 하드웨어 트랜스코딩**을 사용할 수 있습니다.
 - SynologyCommunity FFmpeg 7/8에 AMD용 `libdrm`, `libva`, Mesa RadeonSI, RADV Vulkan, Rusticl OpenCL 런타임을 연결합니다.
-- `vainfo`, `vulkaninfo`, `amdgpu_top`으로 GPU 런타임과 사용량을 확인할 수 있습니다.
+- `vainfo`, `vulkaninfo`로 GPU 런타임을 확인할 수 있습니다. 사용률·VRAM·온도 등 GPU 모니터링(`amdgpu_top`)은 [syno-amdgpu-top](https://github.com/PeterSuh-Q3/syno-amdgpu-top)을 별도로 설치하세요.
 - OpenCL/Rusticl 환경을 포함하므로, 호환되는 Jellyfin·FFmpeg 구성에서는 HDR 톤 매핑 경로에도 사용할 수 있습니다.
 
 ## Jellyfin 자동 설정
@@ -105,3 +105,4 @@ NAS의 플랫폼과 같은 파일을 선택해야 합니다. 현재 DSM 7.4용�
 | 0.3.4 | Jellyfin 패키지 자동 감지 및 FFmpeg VA-API 래퍼 자동 연결 |
 | 0.3.5 | `/dev/shm/jellyfin` 기본 작업 공간, 변경 시 Jellyfin 1회 재시작 |
 | 0.4.1 | privilege helper가 참조하는 runtime payload를 root 소유·비쓰기 상태로 고정하고, Plex 실행 파일 자동 교체를 중단하며 이전 래퍼는 안전 복원 |
+| 0.5.0 | `amdgpu_top`과 PATH 관리 로직을 [syno-amdgpu-top](https://github.com/PeterSuh-Q3/syno-amdgpu-top) 독립 패키지로 분리. Mesa/libva에 의존하지 않는 도구를 무거운 VA-API 런타임에서 떼어내 각자 필요한 것만 설치할 수 있게 함 |

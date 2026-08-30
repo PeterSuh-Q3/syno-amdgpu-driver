@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Produce both DSM kernel-policy packages from one already-built userspace SPK.
-# No Mesa/LLVM/amdgpu_top recompilation is performed.
+# No Mesa/LLVM recompilation is performed.
 set -euo pipefail
 
 INPUT=${1:?existing x86_64 SPK required}

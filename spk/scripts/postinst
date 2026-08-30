@@ -5,8 +5,6 @@ if [ ! -c /dev/dri/renderD128 ] || [ "$(cat /sys/class/drm/renderD128/device/ven
   echo "Notice: no AMD DRM render node; runtime installed without media-server or PATH integration." >&2
   exit 0
 fi
-test -x "$RUNTIME/bin/amdgpu_top"
-"$RUNTIME/bin/helper/amdgpu-path-helper" install || echo "Warning: /usr/bin/amdgpu_top shim not created yet; start-stop-status will retry." >&2
 "$RUNTIME/bin/helper/amdgpu-jellyfin-helper" patch
 "$RUNTIME/bin/helper/amdgpu-jellyfin-helper" configure
 "$RUNTIME/bin/helper/amdgpu-jellyfin-helper" restart

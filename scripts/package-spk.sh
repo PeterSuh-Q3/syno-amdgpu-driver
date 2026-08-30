@@ -44,41 +44,23 @@ cp "$ROOT/spk/scripts/"* "$ASSEMBLY/scripts/"
 cp "$ROOT/spk/conf/"* "$ASSEMBLY/conf/"
 case "$KERNEL_FLAVOR" in
   kernel4.4.x)
-    # Kernel 4.4's backported AMDGPU scheduler can fault when amdgpu_top
-    # closes its DRM context. Keep the binary for explicit diagnostics, but
-    # do not expose it through /usr/bin or invoke it from package lifecycle.
+    # Kernel 4.4's backported AMDGPU scheduler is not stable when a media
+    # process closes a VA-API DRM context, so this flavor never wires up
+    # Jellyfin/Plex hardware transcoding. (amdgpu_top itself moved to the
+    # standalone syno-amdgpu-top package and is no longer part of this split.)
     cat > "$ASSEMBLY/scripts/postinst" <<'EOF'
 #!/bin/sh
 set -eu
 RUNTIME=/var/packages/syno-amdgpu-runtime/target
 if [ ! -c /dev/dri/renderD128 ] || [ "$(cat /sys/class/drm/renderD128/device/vendor 2>/dev/null || true)" != "0x1002" ]; then
-  echo "Notice: no AMD DRM render node; runtime installed without media-server or PATH integration." >&2
+  echo "Notice: no AMD DRM render node; runtime installed without media-server integration." >&2
   exit 0
 fi
-test -x "$RUNTIME/bin/amdgpu_top"
-echo "Notice: kernel 4.4 runtime keeps amdgpu_top as an experimental diagnostic tool; it is not registered in PATH." >&2
-"$RUNTIME/bin/helper/amdgpu-jellyfin-helper" patch
-"$RUNTIME/bin/helper/amdgpu-jellyfin-helper" configure
-"$RUNTIME/bin/helper/amdgpu-jellyfin-helper" restart
+echo "Notice: kernel 4.4 VA-API is experimental; Jellyfin/Plex integration is not applied." >&2
 "$RUNTIME/bin/helper/amdgpu-plex-restore-helper" || echo "Warning: Plex legacy wrapper was not restored automatically." >&2
-# Kernel 4.4's backported AMDGPU scheduler is not stable when a media
-# process closes a VA-API DRM context.  Do not inject the Plex runtime here.
 EOF
     chmod 0755 "$ASSEMBLY/scripts/postinst"
-    # start-stop-status normally self-heals the /usr/bin/amdgpu_top shim on
-    # every package start; kernel 4.4 must never create that shim, so ship a
-    # copy without the self-heal step instead of the shared spk/scripts one.
-    cat > "$ASSEMBLY/scripts/start-stop-status" <<'EOF'
-#!/bin/sh
-case "${1:-}" in
-  start|status) exit 0 ;;
-  stop) exit 0 ;;
-  log) exit 1 ;;
-  *) exit 1 ;;
-esac
-EOF
-    chmod 0755 "$ASSEMBLY/scripts/start-stop-status"
-    sed -i -E 's#^description=".*"$#description="AMD VA-API, RADV Vulkan, and monitoring runtime for DSM (kernel 4.4: amdgpu_top experimental)."#' "$ASSEMBLY/INFO"
+    sed -i -E 's#^description=".*"$#description="AMD VA-API and RADV Vulkan runtime for DSM (kernel 4.4: experimental, no media-server integration)."#' "$ASSEMBLY/INFO"
     ;;
 esac
 for icon in PACKAGE_ICON.PNG PACKAGE_ICON_256.PNG; do

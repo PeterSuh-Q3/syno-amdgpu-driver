@@ -1,9 +1,8 @@
 # 목적: 이미 빌드된 x86_64 SPK 하나를 입력으로 받아, 패키지 통합 코드
 # (postinst/start-stop-status/package-spk.sh 등)만 갱신한 kernel5.10.55 /
 # kernel4.4.x 두 플레이버 SPK를 재패킹한다.
-# Mesa/LLVM/amdgpu_top(Rust) 재컴파일은 전혀 하지 않으며, 헬퍼 C 파일
-# (amdgpu-path-helper 등) 3종만 재컴파일한다. 0.4.0처럼 스크립트/버전만
-# 바뀐 변경사항을 배포할 때 쓰는 경로다.
+# Mesa/LLVM 재컴파일은 전혀 하지 않으며, 헬퍼 C 파일(amdgpu-plex-restore-helper
+# 등)만 재컴파일한다. 스크립트/버전만 바뀐 변경사항을 배포할 때 쓰는 경로다.
 # 대응 스크립트: scripts/repackage-kernel-flavors.sh
 #   (내부에서 scripts/repackage-existing-spk.sh -> scripts/package-spk.sh 순으로 호출)
 #

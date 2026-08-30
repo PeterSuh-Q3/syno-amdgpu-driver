@@ -29,7 +29,6 @@ fetch() {
 fetch libdrm "$LIBDRM_URL" "libdrm-${LIBDRM_VERSION}.tar.xz" libdrm
 fetch libva "$LIBVA_URL" "libva-${LIBVA_VERSION}.tar.bz2" libva
 fetch mesa "$MESA_URL" "mesa-${MESA_VERSION}.tar.xz" mesa
-fetch amdgpu_top "$AMDGPU_TOP_URL" "amdgpu_top-${AMDGPU_TOP_VERSION}.tar.gz" amdgpu_top
 fetch llvm "$LLVM_URL" "llvm-project-${LLVM_VERSION}.src.tar.xz" llvm-project
 fetch elfutils "$ELFUTILS_URL" "elfutils-${ELFUTILS_VERSION}.tar.bz2" elfutils
 fetch zlib "$ZLIB_URL" "zlib-${ZLIB_VERSION}.tar.gz" zlib
