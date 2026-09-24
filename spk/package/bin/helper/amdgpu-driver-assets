@@ -1,0 +1,179 @@
+#!/bin/sh
+set -eu
+
+PACKAGE_ROOT=/var/packages/syno-amdgpu-runtime/target
+ASSET_ROOT=$PACKAGE_ROOT/share/syno-amdgpu-driver/driver-assets
+FIRMWARE_PAYLOAD=$ASSET_ROOT/firmware
+MODULES=/lib/modules
+FIRMWARE=/lib/firmware
+KVER=$(uname -r)
+TARGET_DSM=7.4
+TARGET_KERNEL=
+TARGET_PLATFORM=
+PAYLOAD=
+BACKUP=
+
+fail() { echo "AMDGPU driver package: $*" >&2; exit 1; }
+need_root() { [ "$(id -u)" = 0 ] || fail 'root privilege is required'; }
+
+resolve_target() {
+  case "$KVER" in
+    5.10.55*) TARGET_KERNEL=kernel5.10.55 ;;
+    4.4.302*) TARGET_KERNEL=kernel4.4.x ;;
+    *) fail "unsupported running kernel: $KVER" ;;
+  esac
+  platform_info=
+  if command -v synoinfo >/dev/null 2>&1; then
+    platform_info=$(synoinfo --get platform 2>/dev/null || true)
+  elif [ -x /usr/syno/bin/synoinfo ]; then
+    platform_info=$(/usr/syno/bin/synoinfo --get platform 2>/dev/null || true)
+  elif [ -x /usr/syno/sbin/synoinfo ]; then
+    platform_info=$(/usr/syno/sbin/synoinfo --get platform 2>/dev/null || true)
+  fi
+  TARGET_PLATFORM=$(printf '%s\n' "$platform_info" | sed -n 's/^[^:]*:[[:space:]]*//p' | head -n 1 | tr -d '\r')
+  if [ -z "$TARGET_PLATFORM" ]; then
+    # Some DSM images do not ship a standalone synoinfo binary. Synology's
+    # kernel build identity still reports e.g. synology_epyc7002_sa6400.
+    TARGET_PLATFORM=$(uname -a | sed -n 's/.*[[:space:]]synology_\([[:alnum:]-]*\)_.*/\1/p' | head -n 1)
+  fi
+  case "$TARGET_KERNEL:$TARGET_PLATFORM" in
+    kernel5.10.55:epyc7002|kernel5.10.55:epyc7003|kernel5.10.55:geminilakenk|kernel5.10.55:icelaked|kernel5.10.55:r1000nk|kernel5.10.55:v1000nk) ;;
+    kernel4.4.x:apollolake|kernel4.4.x:broadwell|kernel4.4.x:broadwellnk|kernel4.4.x:broadwellnkv2|kernel4.4.x:broadwellntbap|kernel4.4.x:denverton|kernel4.4.x:geminilake|kernel4.4.x:purley|kernel4.4.x:r1000|kernel4.4.x:v1000) ;;
+    *) fail "unsupported or mismatched DSM platform/kernel: ${TARGET_PLATFORM:-unknown}/$KVER" ;;
+  esac
+  PAYLOAD=$ASSET_ROOT/$TARGET_PLATFORM-$TARGET_DSM-$TARGET_KERNEL
+  # Keep the epyc7002 backup namespace used by the pilot so an upgrade does
+  # not replace the original pre-package backup with the pilot's own modules.
+  BACKUP=/var/packages/syno-amdgpu-runtime/var/driver-backup/${TARGET_PLATFORM}-${TARGET_DSM}
+  [ -d "$PAYLOAD" ] || fail "no bundled driver assets for $TARGET_PLATFORM"
+  [ "$(sed -n 's/^platform=//p' "$PAYLOAD/target.conf")" = "$TARGET_PLATFORM" ] || fail 'payload platform manifest mismatch'
+  [ "$(sed -n 's/^dsm=//p' "$PAYLOAD/target.conf")" = "$TARGET_DSM" ] || fail 'payload DSM manifest mismatch'
+  [ "$(sed -n 's/^kernel=//p' "$PAYLOAD/target.conf")" = "$TARGET_KERNEL" ] || fail 'payload kernel manifest mismatch'
+}
+
+install_assets() {
+  need_root
+  resolve_target
+  [ -s "$PAYLOAD/drm-modules.tgz" ] || fail 'missing platform DRM payload'
+  [ -s "$FIRMWARE_PAYLOAD/firmware-amdgpu.tgz" ] && [ -s "$FIRMWARE_PAYLOAD/firmware-i915.tgz" ] || fail 'missing shared firmware payload'
+  (cd "$PAYLOAD" && sha256sum -c SHA256SUMS) || fail 'DRM payload checksum validation failed'
+  (cd "$FIRMWARE_PAYLOAD" && sha256sum -c SHA256SUMS) || fail 'firmware payload checksum validation failed'
+
+  tmp=$(mktemp -d /tmp/syno-amdgpu-driver.XXXXXX)
+  trap 'rm -rf "$tmp"' EXIT HUP INT TERM
+  mkdir -p "$tmp/modules" "$tmp/fw-amd" "$tmp/fw-i915" "$tmp/root/lib/modules/$KVER"
+  tar -xzf "$PAYLOAD/drm-modules.tgz" -C "$tmp/modules"
+  tar -xzf "$FIRMWARE_PAYLOAD/firmware-amdgpu.tgz" -C "$tmp/fw-amd"
+  tar -xzf "$FIRMWARE_PAYLOAD/firmware-i915.tgz" -C "$tmp/fw-i915"
+  set -- "$tmp/modules"/*.ko
+  [ -f "$1" ] || fail 'module archive contains no .ko files'
+
+  # Build a standard temporary module tree. The source DSM uses a flat module
+  # directory, so indexes are generated in the kernel-release layout and then
+  # copied back flat. Nothing on the live system is changed until depmod exits.
+  for f in "$MODULES"/*.ko; do
+    [ -f "$f" ] || continue
+    ln -s "$f" "$tmp/root/lib/modules/$KVER/$(basename "$f")"
+  done
+  for f in "$tmp/modules"/*.ko; do
+    rm -f "$tmp/root/lib/modules/$KVER/$(basename "$f")"
+    cp -p "$f" "$tmp/root/lib/modules/$KVER/"
+  done
+  /sbin/depmod -b "$tmp/root" "$KVER" || fail 'depmod failed; live modules were not changed'
+
+  mkdir -p "$BACKUP/modules" "$BACKUP/firmware" "$BACKUP/indexes"
+  if [ ! -f "$BACKUP/modules.list" ]; then
+    : > "$BACKUP/modules.list"
+    for f in "$tmp/modules"/*.ko; do
+      name=$(basename "$f")
+      if [ -e "$MODULES/$name" ]; then
+        printf 'P %s\n' "$name" >> "$BACKUP/modules.list"
+        cp -p "$MODULES/$name" "$BACKUP/modules/$name"
+      else
+        printf 'N %s\n' "$name" >> "$BACKUP/modules.list"
+      fi
+    done
+  fi
+  if [ ! -f "$BACKUP/indexes.list" ]; then
+    : > "$BACKUP/indexes.list"
+    for f in "$MODULES"/modules.*; do
+      [ -f "$f" ] || continue
+      name=$(basename "$f")
+      printf 'P %s\n' "$name" >> "$BACKUP/indexes.list"
+      cp -p "$f" "$BACKUP/indexes/$name"
+    done
+  fi
+  if [ ! -f "$BACKUP/firmware.list" ]; then
+    : > "$BACKUP/firmware.list"
+    for root in "$tmp/fw-amd" "$tmp/fw-i915"; do
+      (cd "$root" && find . -type f -print) | while IFS= read -r rel; do
+        rel=${rel#./}
+        src=$root/$rel
+        dst=$FIRMWARE/$rel
+        if [ -e "$dst" ]; then
+          printf 'P %s\n' "$rel" >> "$BACKUP/firmware.list"
+          mkdir -p "$BACKUP/firmware/$(dirname "$rel")"
+          cp -p "$dst" "$BACKUP/firmware/$rel"
+        else
+          printf 'N %s\n' "$rel" >> "$BACKUP/firmware.list"
+        fi
+      done
+    done
+  fi
+
+  for f in "$tmp/modules"/*.ko; do cp -p "$f" "$MODULES/$(basename "$f")"; done
+  for f in "$tmp/root/lib/modules/$KVER"/modules.*; do
+    [ -f "$f" ] || continue
+    cp -p "$f" "$MODULES/$(basename "$f")"
+  done
+  for root in "$tmp/fw-amd" "$tmp/fw-i915"; do
+    (cd "$root" && find . -type f -print) | while IFS= read -r rel; do
+      rel=${rel#./}
+      mkdir -p "$FIRMWARE/$(dirname "$rel")"
+      cp -p "$root/$rel" "$FIRMWARE/$rel"
+    done
+  done
+  echo 'AMDGPU and combined DRM modules plus AMD/i915 firmware installed. Reboot DSM once before validating GPU status or hardware transcoding.'
+}
+
+restore_assets() {
+  need_root
+  resolve_target
+  [ -d "$BACKUP" ] || { echo 'No driver backup found; nothing to restore.'; return 0; }
+  if [ -f "$BACKUP/modules.list" ]; then
+    while read -r state name; do
+      [ -n "$name" ] || continue
+      case "$state" in
+        P) cp -p "$BACKUP/modules/$name" "$MODULES/$name" ;;
+        N) rm -f "$MODULES/$name" ;;
+      esac
+    done < "$BACKUP/modules.list"
+  fi
+  if [ -f "$BACKUP/indexes.list" ]; then
+    for f in "$MODULES"/modules.*; do [ -f "$f" ] && rm -f "$f"; done
+    while read -r state name; do
+      [ -n "$name" ] || continue
+      [ "$state" = P ] && cp -p "$BACKUP/indexes/$name" "$MODULES/$name"
+    done < "$BACKUP/indexes.list"
+  fi
+  if [ -f "$BACKUP/firmware.list" ]; then
+    while read -r state rel; do
+      [ -n "$rel" ] || continue
+      case "$state" in
+        P) mkdir -p "$FIRMWARE/$(dirname "$rel")"; cp -p "$BACKUP/firmware/$rel" "$FIRMWARE/$rel" ;;
+        N) rm -f "$FIRMWARE/$rel" ;;
+      esac
+    done < "$BACKUP/firmware.list"
+  fi
+  echo 'Original module, index, and firmware files restored. Reboot to unload any active AMDGPU module.'
+}
+
+case "${1:-}" in
+  install) install_assets ;;
+  restore) restore_assets ;;
+  load)
+    need_root
+    /sbin/modprobe amdgpu || { echo 'AMDGPU module could not be loaded; inspect dmesg.' >&2; exit 1; }
+    ;;
+  *) fail 'usage: amdgpu-driver-assets {install|restore|load}' ;;
+esac

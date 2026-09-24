@@ -7,12 +7,20 @@ DSM_VERSION=${3:?DSM version required}
 KERNEL_FLAVOR=${4:-kernel5.10.55}
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 PACKAGE=syno-amdgpu-runtime
-OUT=$ROOT/dist
-ASSEMBLY=$ROOT/work/spk-${PLATFORM}-${DSM_VERSION}
+OUT=${DIST_DIR:-$ROOT/dist}
+ASSEMBLY=${ASSEMBLY_DIR:-$ROOT/work/spk-${PLATFORM}-${DSM_VERSION}}
 # kvmx64 is Synology's virtual-platform identifier and must remain in INFO's
 # arch field.  Use the clearer CPU-architecture suffix for the distributable
 # filename so it is not mistaken for a hardware model.
 case "$PLATFORM" in
+  kernel4.4.302-universal)
+    FILE_ARCH=x86_64
+    PACKAGE_ARCHES='apollolake broadwell broadwellnk broadwellnkv2 broadwellntbap denverton geminilake purley r1000 v1000'
+    ;;
+  kernel5.10.55-universal)
+    FILE_ARCH=x86_64
+    PACKAGE_ARCHES='epyc7002 epyc7003 geminilakenk icelaked r1000nk v1000nk'
+    ;;
   kvmx64)
     FILE_ARCH=x86_64
     # This is the portable DSM 7.4 x86_64 runtime build.  The runtime is
@@ -52,15 +60,14 @@ case "$KERNEL_FLAVOR" in
 #!/bin/sh
 set -eu
 RUNTIME=/var/packages/syno-amdgpu-runtime/target
-if [ ! -c /dev/dri/renderD128 ] || [ "$(cat /sys/class/drm/renderD128/device/vendor 2>/dev/null || true)" != "0x1002" ]; then
-  echo "Notice: no AMD DRM render node; runtime installed without media-server integration." >&2
-  exit 0
-fi
+"$RUNTIME/bin/helper/amdgpu-driver-helper" install
+"$RUNTIME/bin/helper/amdgpu-driver-helper" load || echo "Warning: AMDGPU did not load; inspect dmesg." >&2
+echo "Reboot DSM once after installation before validating GPU status or hardware transcoding."
 echo "Notice: kernel 4.4 VA-API is experimental; Jellyfin/Plex integration is not applied." >&2
 "$RUNTIME/bin/helper/amdgpu-plex-restore-helper" || echo "Warning: Plex legacy wrapper was not restored automatically." >&2
 EOF
     chmod 0755 "$ASSEMBLY/scripts/postinst"
-    sed -i -E 's#^description=".*"$#description="AMD VA-API and RADV Vulkan runtime for DSM (kernel 4.4: experimental, no media-server integration)."#' "$ASSEMBLY/INFO"
+    sed -i -E 's#^description=".*"$#description="AMD+i915 Dual DRM and Runtime (DSM 7.4, kernel 4.4.302; AMD VA-API/Vulkan, experimental). Bundled platforms: apollolake broadwell broadwellnk broadwellnkv2 broadwellntbap denverton geminilake purley r1000 v1000. Reboot after installation; no Jellyfin/Plex auto-integration."#' "$ASSEMBLY/INFO"
     ;;
 esac
 for icon in PACKAGE_ICON.PNG PACKAGE_ICON_256.PNG; do

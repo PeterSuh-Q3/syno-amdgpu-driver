@@ -1,13 +1,24 @@
-# Synology AMDGPU Runtime
+# Synology AMD+i915 Dual DRM and Runtime
 
-AMD GPU가 장착된 Synology DSM 7.x 시스템을 위한 사용자 공간 그래픽·미디어 런타임입니다.
+**DSM 7.4용 통합 AMD+i915 DRM 드라이버와 AMD GPU 런타임을 제공합니다.** 플랫폼마다 SPK를 따로 설치하는 대신, 커널 ABI별 통합 SPK 하나가 해당 커널 계열의 모든 지원 플랫폼용 원본 DRM 묶음과 공통 AMD/i915 펌웨어를 포함합니다. 설치기는 NAS의 플랫폼과 커널을 확인해 일치하는 DRM 묶음만 적용합니다.
 
-이 프로젝트는 이미 커널에 로드된 `amdgpu` 모듈 위에 다음 구성요소를 DSM 패키지(SPK)로 제공하는 것을 목표로 합니다.
+두 커널 ABI는 호환되지 않으므로 각각 별도 SPK로 제공합니다. 한 번의 GitHub 릴리즈에서 알맞은 파일을 선택하세요.
+
+| SPK | DSM 7.4 커널 | 포함 플랫폼 |
+|---|---|---|
+| `...-kernel5.10.55.spk` | 5.10.55 | `epyc7002`, `epyc7003`, `geminilakenk`, `icelaked`, `r1000nk`, `v1000nk` |
+| `...-kernel4.4.x.spk` | 4.4.302 | `apollolake`, `broadwell`, `broadwellnk`, `broadwellnkv2`, `broadwellntbap`, `denverton`, `geminilake`, `purley`, `r1000`, `v1000` |
+
+각 `*-drm.tgz` 모듈 묶음은 분해하거나 AMD/i915별로 필터링하지 않고 원형 그대로 패키지에 담습니다. 패키지는 모듈 및 펌웨어 입력의 SHA-256을 검증하며, 설치 후 DSM 재부팅이 필요합니다. Kernel 4.4.x의 미디어 서버 자동 연동은 비활성화되어 있고 VA-API는 실험적입니다.
+
+사용자 공간 런타임은 AMD VA-API/Vulkan 구성요소를 제공합니다.
 
 - AMD VA-API 드라이버: Mesa `radeonsi_drv_video.so`
 - AMD Vulkan 드라이버: Mesa RADV와 `radv_icd.x86_64.json`
 - 공통 런타임: `libdrm`, `libva`, Vulkan loader
 - 진단 도구: `vainfo`, `vulkaninfo`
+- 커널 5.10.55 및 4.4.302 DRM 모듈: 위 표의 플랫폼별 전체 묶음. 설치기가 실행 중인 커널/플랫폼과 일치하는 묶음만 적용합니다.
+- 펌웨어: [`tcrp-modules/firmware/common`](https://github.com/PeterSuh-Q3/tcrp-modules/tree/main/firmware/common)의 AMDGPU 및 i915 펌웨어
 
 AMD GPU의 사용률·VRAM·온도 등을 DSM 플로팅 창에서 확인하려면 별도 프로젝트인 [Synology GPU Monitor](https://github.com/PeterSuh-Q3/syno-gpu-monitor)의 AMD 패키지를 설치하세요. 패키지와 화면 예시는 [통합 GPU Monitor 릴리즈 페이지](https://github.com/PeterSuh-Q3/syno-gpu-monitor/releases/tag/gpu-monitors-2026.09.24)에서 받을 수 있습니다. AMDGPU Runtime과 GPU Monitor는 서로 독립적으로 설치·동작합니다.
 
@@ -27,6 +38,10 @@ Plex Media Server는 자체 Transcoder를 사용한다. 보안상 AMDGPU Runtime
 
 AMD GPU의 DRM render node(`renderD128`의 PCI vendor가 `0x1002`)가 없는 NAS에서는 SPK 자체는 설치할 수 있지만, 런타임은 no-op으로 동작한다. 따라서 Intel iGPU만 있는 NAS도 Jellyfin/Plex 설정이나 전역 라이브러리 경로를 변경하지 않는다.
 
+## 설치 후 재부팅
+
+통합 Driver + Runtime SPK를 설치하거나 업그레이드한 뒤에는 DSM을 한 번 재부팅하세요. 설치 직후 모듈이 로드되고 render node가 보이더라도, 부팅 과정에서 커널 모듈·AMD/i915 펌웨어·DRM 장치 노드가 새로 초기화된 상태를 기준으로 GPU 정보와 하드웨어 트랜스코딩을 확인해야 합니다. 재부팅 후 `/dev/dri/renderD*`가 생성됐는지, 해당 미디어 서버 계정이 사용할 render node 권한을 갖는지 확인한 다음 재생 테스트를 진행하세요.
+
 ## 검증 기준
 
 ```bash
@@ -38,11 +53,9 @@ ffmpeg -init_hw_device vaapi=amd:/dev/dri/renderD128 -hwaccel vaapi -i input.mp4
 
 `scripts/verify-runtime.sh`은 위 런타임을 설치한 뒤의 읽기 전용 점검을 자동화합니다.
 
-## 지원·검증 정책
+## 지원 범위
 
-DSM 7.4 실기 검증을 최우선으로 한다. 첫 릴리스는 현재 준비된 실기에서 Mesa `radeonsi` VA-API와 RADV Vulkan을 끝까지 검증한 뒤에만 만든다.
-
-DSM 7.4에서 검증한 동일한 소스·패키징 구성을 DSM 7.3, 7.2, 7.1, 7.0 순으로 각 버전의 Synology toolchain으로 다시 빌드하고, 해당 DSM 실기 또는 동등한 검증 환경에서 확인한다. 하위 DSM 빌드는 선행 버전의 검증이 성공한 범위만 지원한다.
+현재 패키지는 DSM 7.4만 대상으로 합니다. 커널 5.10.55와 4.4.302는 모듈 ABI가 달라 SPK가 분리되어 있습니다. 패키지에 플랫폼 자산이 포함되어 있다는 사실과 그 플랫폼의 실기 검증 완료 여부는 구분해야 합니다. DSM 7.3, 7.2, 7.1, 7.0 지원은 별도 toolchain 빌드와 검증 후에만 추가합니다.
 
 ## 개발 방향
 
@@ -54,12 +67,15 @@ DSM 7.4에서 검증한 동일한 소스·패키징 구성을 DSM 7.3, 7.2, 7.1,
 
 자세한 설계는 [docs/architecture.md](docs/architecture.md)를 참조하십시오.
 
+커널 계열별 통합 SPK의 DRM 보존 정책, 자산 체크섬, 설치·복구 동작은 [Driver + Runtime 설계](docs/standalone-driver-design.md)를 참조하십시오.
+
 ## SPK 빌드 골격
 
-DSM 7.4 `epyc7002`용 첫 빌드는 `dante90/syno-compiler:7.4` 컨테이너에서 수행한다.
+DSM 7.4의 커널별 통합 SPK는 `dante90/syno-compiler:7.4` 컨테이너에서 빌드한다.
 
 ```bash
-./scripts/run-spk-build.sh 7.4 epyc7002
+./scripts/build-driver-kernel5-universal.sh
+./scripts/build-driver-kernel4-universal.sh
 ```
 
-빌드 정의는 `build/`에, DSM 패키지 메타데이터와 설치 스크립트는 `spk/`에 있다. Mesa의 `radeonsi`는 LLVM을 필요로 하므로, 빌드 컨테이너에는 DSM ABI용 `llvm-config`와 동적 `libLLVM`이 먼저 준비되어야 한다. 이 골격은 그 경로를 `LLVM_CONFIG`로 명시적으로 받으며, DSM 전역 라이브러리를 변경하지 않는다. 소스 준비와 실행 조건은 [빌드 가이드](docs/build.md)를 참조한다.
+두 스크립트는 DSM 7.4의 각 커널 ABI에서 지원하는 모든 플랫폼의 DRM 아카이브를 원본 그대로 포함하고 공통 AMD/i915 펌웨어를 한 번씩 추가한다. 빌드 정의와 자산 체크섬은 `build/`에, DSM 패키지 메타데이터와 설치 스크립트는 `spk/`에 있다. 상세한 소스 준비와 빌드 조건은 [빌드 가이드](docs/build.md)를 참조한다.

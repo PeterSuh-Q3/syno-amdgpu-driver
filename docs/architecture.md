@@ -28,6 +28,10 @@ libva + radeonsi_drv_video  Vulkan loader + RADV ICD
 
 The package must not overwrite DSM's shared libraries. Consumers opt in with `LD_LIBRARY_PATH`, `LIBVA_DRIVERS_PATH`, and `VK_ICD_FILENAMES`; the final integration may install wrapper scripts instead of setting global system paths.
 
+## Proposed standalone driver package
+
+The DSM 7.4 kernel-5.10.55 package contains one intact `*-drm.tgz` bundle for each of six supported platforms, plus the shared AMD and i915 firmware archives. The installer detects the host platform and applies only its matching bundle. AMD/i915 module filtering is not used. See [Driver + Runtime design](standalone-driver-design.md) for the input lock and restore policy.
+
 ## Release ladder
 
 The first hardware target is DSM 7.4 `epyc7002` with an AMD Polaris GPU. It has a loaded `amdgpu` module, initialized UVD/VCE firmware, and `/dev/dri/renderD128`.

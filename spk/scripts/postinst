@@ -1,6 +1,9 @@
 #!/bin/sh
 set -eu
 RUNTIME=/var/packages/syno-amdgpu-runtime/target
+"$RUNTIME/bin/helper/amdgpu-driver-helper" install
+"$RUNTIME/bin/helper/amdgpu-driver-helper" load || echo "Warning: AMDGPU did not load; inspect dmesg after installation." >&2
+echo "Reboot DSM once after installation before validating GPU status or hardware transcoding."
 if [ ! -c /dev/dri/renderD128 ] || [ "$(cat /sys/class/drm/renderD128/device/vendor 2>/dev/null || true)" != "0x1002" ]; then
   echo "Notice: no AMD DRM render node; runtime installed without media-server or PATH integration." >&2
   exit 0

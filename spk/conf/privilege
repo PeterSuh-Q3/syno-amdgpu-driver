@@ -18,6 +18,12 @@
       "user": "root",
       "group": "package",
       "permission": "6550"
+    },
+    {
+      "relpath": "bin/helper/amdgpu-driver-helper",
+      "user": "root",
+      "group": "package",
+      "permission": "6550"
     }
   ]
 }

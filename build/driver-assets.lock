@@ -1,0 +1,22 @@
+# tcrp-modules 26.9.12 module bundle checksum table
+# platform kernel archive sha256 release-url
+apollolake 4.4.302 apollolake-7.4-4.4.302-drm.tgz 5bb18cf65369796caf5eb99ca5d7338b24deb54af01071400a8e16f9b57f63b1 https://github.com/PeterSuh-Q3/tcrp-modules/releases/download/26.9.12/apollolake-7.4-4.4.302-drm.tgz
+broadwell 4.4.302 broadwell-7.4-4.4.302-drm.tgz 64a09cb85a0b282461280c6ba98986769625e7b9dcf44ff893e0fa54b8c1ef63 https://github.com/PeterSuh-Q3/tcrp-modules/releases/download/26.9.12/broadwell-7.4-4.4.302-drm.tgz
+broadwellnk 4.4.302 broadwellnk-7.4-4.4.302-drm.tgz b9392e66357dad627dbb92ac7367ef98995ca3c68c1b64462d804fb0247524cb https://github.com/PeterSuh-Q3/tcrp-modules/releases/download/26.9.12/broadwellnk-7.4-4.4.302-drm.tgz
+broadwellnkv2 4.4.302 broadwellnkv2-7.4-4.4.302-drm.tgz 61310255f0148daef82ec0913085d1241637b4c525a4ba7e1d276ed8ba6ad2a8 https://github.com/PeterSuh-Q3/tcrp-modules/releases/download/26.9.12/broadwellnkv2-7.4-4.4.302-drm.tgz
+broadwellntbap 4.4.302 broadwellntbap-7.4-4.4.302-drm.tgz 9775bcb230903824f6067829b491879e5753426b4e2377e19d3cdee0e837abbb https://github.com/PeterSuh-Q3/tcrp-modules/releases/download/26.9.12/broadwellntbap-7.4-4.4.302-drm.tgz
+denverton 4.4.302 denverton-7.4-4.4.302-drm.tgz 849d36531283b3f9c81aadfb31a2d1b6a348cc01c9234e8344f5877fad9623c5 https://github.com/PeterSuh-Q3/tcrp-modules/releases/download/26.9.12/denverton-7.4-4.4.302-drm.tgz
+geminilake 4.4.302 geminilake-7.4-4.4.302-drm.tgz 8818948d7f35c33d0add6746a41df875190f64295ee3d2aec932a5bc1e02770b https://github.com/PeterSuh-Q3/tcrp-modules/releases/download/26.9.12/geminilake-7.4-4.4.302-drm.tgz
+purley 4.4.302 purley-7.4-4.4.302-drm.tgz 29c1a80665fe40c9b0db06daaedbcf38509d526aaddfe2f952196df6a5b61414 https://github.com/PeterSuh-Q3/tcrp-modules/releases/download/26.9.12/purley-7.4-4.4.302-drm.tgz
+r1000 4.4.302 r1000-7.4-4.4.302-drm.tgz a5088668f1545cf4b570c2cf205ecc23777840fb8d414e343a330f96a178bbe8 https://github.com/PeterSuh-Q3/tcrp-modules/releases/download/26.9.12/r1000-7.4-4.4.302-drm.tgz
+v1000 4.4.302 v1000-7.4-4.4.302-drm.tgz a5088668f1545cf4b570c2cf205ecc23777840fb8d414e343a330f96a178bbe8 https://github.com/PeterSuh-Q3/tcrp-modules/releases/download/26.9.12/v1000-7.4-4.4.302-drm.tgz
+epyc7002 5.10.55 epyc7002-7.4-5.10.55-drm.tgz 3a916ac50109fb806a6ff964f07a83ede8260f31bc824c5e6254bd2e0c290847 https://github.com/PeterSuh-Q3/tcrp-modules/releases/download/26.9.12/epyc7002-7.4-5.10.55-drm.tgz
+epyc7003 5.10.55 epyc7003-7.4-5.10.55-drm.tgz 16c168398dc4d7e5b606e1e24f8e9b364c992104d6a891ca0245746be989d06a https://github.com/PeterSuh-Q3/tcrp-modules/releases/download/26.9.12/epyc7003-7.4-5.10.55-drm.tgz
+geminilakenk 5.10.55 geminilakenk-7.4-5.10.55-drm.tgz dda48c628fbc4ae853fa65028466f59e57d253929d2463ead49a8cb956a2a3f9 https://github.com/PeterSuh-Q3/tcrp-modules/releases/download/26.9.12/geminilakenk-7.4-5.10.55-drm.tgz
+icelaked 5.10.55 icelaked-7.4-5.10.55-drm.tgz 3f6d8ba41eded9655248aa45d0a117493e8c226c216af86ca9b7d2edcd50f853 https://github.com/PeterSuh-Q3/tcrp-modules/releases/download/26.9.12/icelaked-7.4-5.10.55-drm.tgz
+r1000nk 5.10.55 r1000nk-7.4-5.10.55-drm.tgz 988dc98c81c393b794894c36e1151d6b2ccf96212d4f839d202803587364d4ea https://github.com/PeterSuh-Q3/tcrp-modules/releases/download/26.9.12/r1000nk-7.4-5.10.55-drm.tgz
+v1000nk 5.10.55 v1000nk-7.4-5.10.55-drm.tgz 365744950a9df81eafaa2a3b09e82c490fd324e80a9048aa3273ff82e48aa643 https://github.com/PeterSuh-Q3/tcrp-modules/releases/download/26.9.12/v1000nk-7.4-5.10.55-drm.tgz
+
+# Firmware assets from tcrp-modules/firmware/common at this pinned commit.
+firmwareamdgpu.tgz c24525d644dbcd8dc7c5777be7223ca8c5236d2487314dd3810a223f7dcc6225 https://raw.githubusercontent.com/PeterSuh-Q3/tcrp-modules/429c12eccafab48a0f6a8309ac3626a54a9b0eaa/firmware/common/firmwareamdgpu.tgz
+firmwarei915.tgz 443c13a6f5d474251b3750b8bcbceea21fb9998595287bb750b7bf4f9199ca8e https://raw.githubusercontent.com/PeterSuh-Q3/tcrp-modules/429c12eccafab48a0f6a8309ac3626a54a9b0eaa/firmware/common/firmwarei915.tgz
