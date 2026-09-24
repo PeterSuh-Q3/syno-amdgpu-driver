@@ -1,5 +1,39 @@
 # Synology AMD+i915 Dual DRM and Runtime
 
+## English
+
+**This package is more than an AMD userspace runtime. It is a standalone SPK that installs the AMD+i915 Dual DRM module bundle—including `amdgpu.ko`, `i915.ko`, and their DRM dependencies—together with common firmware and the AMD GPU runtime for DSM 7.4.** Each original `*-drm.tgz` contains both AMD and Intel DRM components; the modules are not split apart or filtered by vendor.
+
+On loader-based systems, these combined DRM modules have often been distributed as part of an integrated loader module pack. This project also aims to offer the same functionality as a **separately installable and manageable package**. **Genuine Synology NAS owners can use this standalone package too** when their DSM kernel, platform, and hardware are compatible. However, inclusion of a platform asset does not mean that every model has been tested or that compatibility is guaranteed.
+
+Each kernel-family SPK contains the original DRM bundles for all supported platforms in that family. The installer detects the NAS platform and kernel and applies only the matching bundle.
+
+The two kernel ABIs are incompatible, so they are delivered as separate SPKs. Choose the appropriate file from the same GitHub release.
+
+| SPK | DSM 7.4 kernel | Included platforms |
+|---|---|---|
+| `...-kernel5.10.55.spk` | 5.10.55 | `epyc7002`, `epyc7003`, `geminilakenk`, `icelaked`, `r1000nk`, `v1000nk` |
+| `...-kernel4.4.x.spk` | 4.4.302 | `apollolake`, `broadwell`, `broadwellnk`, `broadwellnkv2`, `broadwellntbap`, `denverton`, `geminilake`, `purley`, `r1000`, `v1000` |
+
+Each `*-drm.tgz` is packaged intact, preserving `amdgpu.ko`, `i915.ko`, and the DRM dependencies in that bundle. The package verifies SHA-256 checksums for module and firmware inputs. Reboot DSM after installation. Media-server auto-integration is disabled and VA-API is experimental on kernel 4.4.x.
+
+The userspace runtime provides AMD VA-API/Vulkan components:
+
+- AMD VA-API driver: Mesa `radeonsi_drv_video.so`
+- AMD Vulkan driver: Mesa RADV and `radv_icd.x86_64.json`
+- Shared runtime: `libdrm`, `libva`, and the Vulkan loader
+- Diagnostic tools: `vainfo` and `vulkaninfo`
+- Kernel 5.10.55 and 4.4.302 DRM modules: complete per-platform bundles shown above; the installer selects the bundle matching the running kernel and platform
+- Firmware: AMDGPU and i915 firmware from [`tcrp-modules/firmware/common`](https://github.com/PeterSuh-Q3/tcrp-modules/tree/main/firmware/common)
+
+To view AMD GPU utilization, VRAM, temperature, and other telemetry in a DSM floating window, install the AMD package from the separate [Synology GPU Monitor](https://github.com/PeterSuh-Q3/syno-gpu-monitor) project. Packages and screenshots are available from the [combined GPU Monitor release](https://github.com/PeterSuh-Q3/syno-gpu-monitor/releases/tag/gpu-monitors-2026.09.24). AMDGPU Runtime and GPU Monitor are independent packages.
+
+![Synology AMD GPU Monitor showing GPU telemetry and the amdgpu_top console](docs/amd-gpu-monitor.png)
+
+For GPU utilization, VRAM, and temperature monitoring with `amdgpu_top`, install the separate [syno-amdgpu-top](https://github.com/PeterSuh-Q3/syno-amdgpu-top) package. `amdgpu_top` is an independent diagnostic tool that does not depend on Mesa or VA-API, so it is separate from this runtime.
+
+## 한국어
+
 **이 패키지는 AMD 사용자 공간 런타임만이 아닙니다. DSM 7.4용 `amdgpu.ko`와 `i915.ko`를 포함한 AMD+i915 Dual DRM 모듈 묶음, DRM 의존 모듈, 공통 펌웨어, AMD GPU 런타임을 함께 설치하는 스탠드얼론 SPK입니다.** 각 원본 `*-drm.tgz`에는 AMD와 Intel DRM 구성요소가 함께 있으며, 모듈을 분해하거나 한쪽만 떼어내지 않습니다.
 
 헤놀로지 계열에서는 이 통합 DRM 모듈이 기존 로더용 통합 모듈팩 안에 포함된 형태로 배포되는 경우가 많았습니다. 이 프로젝트는 그 구성을 **별도로 설치·관리할 수 있는 패키지 선택지**로 제공하려는 목적도 갖습니다. 또한 지원 커널·플랫폼과 하드웨어가 일치한다면 **시놀로지 정품 NAS 사용자도** 이 독립 패키지를 활용할 수 있습니다. 다만 SPK에 플랫폼 자산이 포함되어 있다는 사실이 모든 기종의 실기 검증이나 호환성을 보장하는 것은 아닙니다.
