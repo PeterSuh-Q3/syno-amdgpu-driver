@@ -11,6 +11,8 @@ AMD GPU가 장착된 Synology DSM 7.x 시스템을 위한 사용자 공간 그�
 
 AMD GPU의 사용률·VRAM·온도 등을 DSM 플로팅 창에서 확인하려면 별도 프로젝트인 [Synology GPU Monitor](https://github.com/PeterSuh-Q3/syno-gpu-monitor)의 AMD 패키지를 설치하세요. 패키지와 화면 예시는 [통합 GPU Monitor 릴리즈 페이지](https://github.com/PeterSuh-Q3/syno-gpu-monitor/releases/tag/gpu-monitors-2026.09.24)에서 받을 수 있습니다. AMDGPU Runtime과 GPU Monitor는 서로 독립적으로 설치·동작합니다.
 
+![Synology AMD GPU Monitor showing GPU telemetry and the amdgpu_top console](docs/amd-gpu-monitor.png)
+
 GPU 사용률·VRAM·온도 모니터링(`amdgpu_top`)이 필요하면 별도 패키지인 [syno-amdgpu-top](https://github.com/PeterSuh-Q3/syno-amdgpu-top)을 설치하세요. `amdgpu_top`은 Mesa/VA-API에 의존하지 않는 독립 도구라 이 런타임과 분리되어 있습니다.
 
 ## 범위
