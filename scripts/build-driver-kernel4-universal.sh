@@ -8,7 +8,7 @@ KERNEL_VERSION=4.4.302
 KERNEL_FLAVOR=kernel4.4.x
 INTERNAL_PLATFORM=kernel4.4.302-universal
 BASE_SPK=${BASE_SPK:-$ROOT/dist/syno-amdgpu-runtime-0.4.1-7.4-x86_64-kernel5.10.55.spk}
-ASSET_ROOT=$ROOT/sources/driver-assets/26.9.12
+ASSET_ROOT=$ROOT/sources/driver-assets/26.9.27
 DIST_DIR=${DIST_DIR:-$ROOT/dist}
 PLATFORMS=(apollolake broadwell broadwellnk broadwellnkv2 broadwellntbap denverton geminilake purley r1000 v1000)
 VERSION=$(sed -n 's/^version="\([^"]*\)"$/\1/p' "$ROOT/spk/INFO" | head -n 1)
@@ -85,6 +85,8 @@ for platform in "${PLATFORMS[@]}"; do
 done
 install -m 0755 "$ROOT/spk/package/bin/helper/amdgpu-driver-assets" \
   "$TARGET/bin/helper/amdgpu-driver-assets"
+install -m 0755 "$ROOT/spk/package/bin/helper/amdgpu-driver-boot.sh" \
+  "$TARGET/bin/helper/amdgpu-driver-boot.sh"
 
 WORK_REL=${WORK#"$ROOT"/}
 DIST_REL=${DIST_DIR#"$ROOT"/}

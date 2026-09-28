@@ -12,6 +12,7 @@ TARGET_KERNEL=
 TARGET_PLATFORM=
 PAYLOAD=
 BACKUP=
+DEPMOD_LINK_MARKER=
 
 fail() { echo "AMDGPU driver package: $*" >&2; exit 1; }
 need_root() { [ "$(id -u)" = 0 ] || fail 'root privilege is required'; }
@@ -45,10 +46,94 @@ resolve_target() {
   # Keep the epyc7002 backup namespace used by the pilot so an upgrade does
   # not replace the original pre-package backup with the pilot's own modules.
   BACKUP=/var/packages/syno-amdgpu-runtime/var/driver-backup/${TARGET_PLATFORM}-${TARGET_DSM}
+  DEPMOD_LINK_MARKER=$BACKUP/depmod-link-created-by-package
   [ -d "$PAYLOAD" ] || fail "no bundled driver assets for $TARGET_PLATFORM"
   [ "$(sed -n 's/^platform=//p' "$PAYLOAD/target.conf")" = "$TARGET_PLATFORM" ] || fail 'payload platform manifest mismatch'
   [ "$(sed -n 's/^dsm=//p' "$PAYLOAD/target.conf")" = "$TARGET_DSM" ] || fail 'payload DSM manifest mismatch'
   [ "$(sed -n 's/^kernel=//p' "$PAYLOAD/target.conf")" = "$TARGET_KERNEL" ] || fail 'payload kernel manifest mismatch'
+}
+
+install_kernel4_autoload() {
+  [ "$TARGET_KERNEL" = kernel4.4.x ] || return 0
+  modules_conf=/etc/modules-load.d/syno-amdgpu-runtime.conf
+  boot_hook=/usr/local/etc/rc.d/syno-amdgpu-runtime.sh
+  boot_source=$PACKAGE_ROOT/bin/helper/amdgpu-driver-boot.sh
+  autoload_list=$BACKUP/autoload-files.list
+  mkdir -p /etc/modules-load.d /usr/local/etc/rc.d "$BACKUP"
+  touch "$autoload_list"
+
+  if [ -e "$modules_conf" ] || [ -L "$modules_conf" ]; then
+    [ "$(cat "$modules_conf" 2>/dev/null || true)" = i915 ] || fail "refusing to overwrite existing $modules_conf"
+  else
+    printf 'modules-load\n' >> "$autoload_list"
+    tmp_conf=$(mktemp /etc/modules-load.d/.syno-amdgpu-runtime.XXXXXX)
+    printf 'i915\n' > "$tmp_conf"
+    chmod 0644 "$tmp_conf"
+    chown root:root "$tmp_conf"
+    mv -f "$tmp_conf" "$modules_conf"
+  fi
+
+  [ -s "$boot_source" ] || fail 'missing kernel-4 boot loader script'
+  if [ -e "$boot_hook" ] || [ -L "$boot_hook" ]; then
+    cmp -s "$boot_source" "$boot_hook" || fail "refusing to overwrite existing $boot_hook"
+  else
+    printf 'boot-hook\n' >> "$autoload_list"
+    install -o root -g root -m 0755 "$boot_source" "$boot_hook"
+  fi
+}
+
+remove_kernel4_autoload() {
+  autoload_list=$BACKUP/autoload-files.list
+  [ -f "$autoload_list" ] || return 0
+  while IFS= read -r item; do
+    case "$item" in
+      modules-load)
+        path=/etc/modules-load.d/syno-amdgpu-runtime.conf
+        expected=i915
+        ;;
+      modprobe-options)
+        path=/etc/modprobe.d/syno-amdgpu-runtime.conf
+        expected='options amdgpu exp_hw_support=1'
+        ;;
+      boot-hook)
+        path=/usr/local/etc/rc.d/syno-amdgpu-runtime.sh
+        source=$PACKAGE_ROOT/bin/helper/amdgpu-driver-boot.sh
+        if [ -f "$source" ] && [ -f "$path" ] && cmp -s "$source" "$path"; then
+          rm -f "$path"
+        else
+          echo "Keeping $path because it no longer matches the package-created boot hook." >&2
+        fi
+        continue
+        ;;
+      *) continue ;;
+    esac
+    if [ -f "$path" ] && [ "$(cat "$path" 2>/dev/null || true)" = "$expected" ]; then
+      rm -f "$path"
+    else
+      echo "Keeping $path because it no longer matches the package-created configuration." >&2
+    fi
+  done < "$autoload_list"
+  rm -f "$autoload_list"
+}
+
+ensure_depmod() {
+  if [ -x /sbin/depmod ]; then
+    return 0
+  fi
+  [ ! -e /sbin/depmod ] && [ ! -L /sbin/depmod ] || fail '/sbin/depmod exists but is not executable; refusing to replace it'
+  [ "$TARGET_KERNEL" = kernel4.4.x ] || fail '/sbin/depmod is unavailable for this kernel'
+  [ -x /usr/bin/kmod ] || fail 'kernel-4 depmod fallback requires /usr/bin/kmod'
+
+  # DSM 7.4 kernel-4 systems may ship kmod without the depmod command link.
+  # Create only the missing alias and record ownership so uninstall can safely
+  # remove it later. Never overwrite a system-provided depmod implementation.
+  mkdir -p "$BACKUP"
+  : > "$DEPMOD_LINK_MARKER"
+  ln -s /usr/bin/kmod /sbin/depmod || fail 'could not create the kernel-4 /sbin/depmod compatibility link'
+  [ -x /sbin/depmod ] && [ "$(readlink /sbin/depmod 2>/dev/null || true)" = /usr/bin/kmod ] || {
+    rm -f "$DEPMOD_LINK_MARKER"
+    fail 'created depmod compatibility link did not validate'
+  }
 }
 
 install_assets() {
@@ -79,6 +164,7 @@ install_assets() {
     rm -f "$tmp/root/lib/modules/$KVER/$(basename "$f")"
     cp -p "$f" "$tmp/root/lib/modules/$KVER/"
   done
+  ensure_depmod
   /sbin/depmod -b "$tmp/root" "$KVER" || fail 'depmod failed; live modules were not changed'
 
   mkdir -p "$BACKUP/modules" "$BACKUP/firmware" "$BACKUP/indexes"
@@ -133,6 +219,7 @@ install_assets() {
       cp -p "$root/$rel" "$FIRMWARE/$rel"
     done
   done
+  install_kernel4_autoload
   echo 'AMDGPU and combined DRM modules plus AMD/i915 firmware installed. Reboot DSM once before validating GPU status or hardware transcoding.'
 }
 
@@ -165,6 +252,16 @@ restore_assets() {
       esac
     done < "$BACKUP/firmware.list"
   fi
+  if [ -f "$DEPMOD_LINK_MARKER" ]; then
+    if [ "$(readlink /sbin/depmod 2>/dev/null || true)" = /usr/bin/kmod ]; then
+      rm -f /sbin/depmod
+      echo 'Package-created /sbin/depmod compatibility link removed.'
+    else
+      echo 'Keeping /sbin/depmod because it no longer matches the package-created link.' >&2
+    fi
+    rm -f "$DEPMOD_LINK_MARKER"
+  fi
+  remove_kernel4_autoload
   echo 'Original module, index, and firmware files restored. Reboot to unload any active AMDGPU module.'
 }
 
@@ -173,7 +270,20 @@ case "${1:-}" in
   restore) restore_assets ;;
   load)
     need_root
-    /sbin/modprobe amdgpu || { echo 'AMDGPU module could not be loaded; inspect dmesg.' >&2; exit 1; }
+    resolve_target
+    if [ -d /sys/module/amdgpu ]; then
+      if [ "$TARGET_KERNEL" = kernel4.4.x ] && [ "$(cat /sys/module/amdgpu/parameters/exp_hw_support 2>/dev/null || true)" != 1 ]; then
+        fail 'AMDGPU is already loaded without exp_hw_support=1; unload it safely or reboot to apply the experimental K4 option'
+      fi
+    else
+      case "$TARGET_KERNEL" in
+        kernel4.4.x) /sbin/modprobe amdgpu exp_hw_support=1 ;;
+        kernel5.10.55) /sbin/modprobe amdgpu ;;
+      esac || { echo 'AMDGPU module could not be loaded; inspect dmesg.' >&2; exit 1; }
+    fi
+    if [ "$TARGET_KERNEL" = kernel4.4.x ]; then
+      /sbin/modprobe i915 || { echo 'i915 module could not be loaded; inspect dmesg.' >&2; exit 1; }
+    fi
     ;;
   *) fail 'usage: amdgpu-driver-assets {install|restore|load}' ;;
 esac

@@ -4,7 +4,7 @@ set -euo pipefail
 PLATFORM=${1:?usage: fetch-driver-assets.sh <DSM-7.4-platform>}
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 LOCK=$ROOT/build/driver-assets.lock
-DEST=$ROOT/sources/driver-assets/26.9.12
+DEST=$ROOT/sources/driver-assets/26.9.27
 TMP="$DEST/.download.$$"
 
 mkdir -p "$DEST"
@@ -25,6 +25,11 @@ fetch_checked() {
     --retry 2 --retry-all-errors --retry-delay 1 "$url" -o "$output" 2>"$TMP/curl.err"; then
     case "$url" in
       https://github.com/*/releases/download/*)
+        if command -v gh >/dev/null && gh auth status >/dev/null 2>&1; then
+          repo=$(sed -E 's#https://github.com/([^/]+/[^/]+)/releases/download/.*#\1#' <<< "$url")
+          tag=$(sed -E 's#https://github.com/[^/]+/[^/]+/releases/download/([^/]+)/.*#\1#' <<< "$url")
+          gh release download "$tag" --repo "$repo" --pattern "$name" --dir "$TMP" --clobber
+        else
         command -v jq >/dev/null || { cat "$TMP/curl.err" >&2; echo 'jq is required for the GitHub release API fallback.' >&2; return 1; }
         repo=$(sed -E 's#https://github.com/([^/]+/[^/]+)/releases/download/.*#\1#' <<< "$url")
         tag=$(sed -E 's#https://github.com/[^/]+/[^/]+/releases/download/([^/]+)/.*#\1#' <<< "$url")
@@ -35,6 +40,7 @@ fetch_checked() {
           --retry 3 --retry-all-errors --retry-delay 1 \
           -H 'Accept: application/octet-stream' \
           "https://api.github.com/repos/$repo/releases/assets/$asset_id" -o "$output"
+        fi
         ;;
       *) cat "$TMP/curl.err" >&2; return 1 ;;
     esac

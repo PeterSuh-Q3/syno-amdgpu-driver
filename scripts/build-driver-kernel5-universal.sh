@@ -8,7 +8,7 @@ DSM_VERSION=7.4
 KERNEL_FLAVOR=kernel5.10.55
 INTERNAL_PLATFORM=kernel5.10.55-universal
 BASE_SPK=${BASE_SPK:-$ROOT/dist/syno-amdgpu-runtime-0.4.1-7.4-x86_64-kernel5.10.55.spk}
-ASSET_ROOT=$ROOT/sources/driver-assets/26.9.12
+ASSET_ROOT=$ROOT/sources/driver-assets/26.9.27
 DIST_DIR=${DIST_DIR:-$ROOT/dist}
 PLATFORMS=(epyc7002 epyc7003 geminilakenk icelaked r1000nk v1000nk)
 VERSION=$(sed -n 's/^version="\([^"]*\)"$/\1/p' "$ROOT/spk/INFO" | head -n 1)
