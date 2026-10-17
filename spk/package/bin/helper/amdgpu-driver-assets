@@ -7,12 +7,19 @@ FIRMWARE_PAYLOAD=$ASSET_ROOT/firmware
 MODULES=/lib/modules
 FIRMWARE=/lib/firmware
 KVER=$(uname -r)
+KVER_NUM=$(printf '%s\n' "$KVER" | sed 's/[^0-9.].*$//')
 TARGET_DSM=7.4
 TARGET_KERNEL=
 TARGET_PLATFORM=
 PAYLOAD=
 BACKUP=
 DEPMOD_LINK_MARKER=
+ACTIVE_STATE=/var/packages/syno-amdgpu-runtime/var/driver-active-state
+ACTIVE_MODULES=/var/packages/syno-amdgpu-runtime/var/driver-active-modules.sha256
+REBOOT_PENDING=/var/packages/syno-amdgpu-runtime/var/driver-migration-reboot-required
+PREVIOUS_PLATFORM=
+PREVIOUS_MODULES=
+PREVIOUS_BACKUP=
 
 fail() { echo "AMDGPU driver package: $*" >&2; exit 1; }
 need_root() { [ "$(id -u)" = 0 ] || fail 'root privilege is required'; }
@@ -136,9 +143,134 @@ ensure_depmod() {
   }
 }
 
+module_vermagic() {
+  module=$1
+  if command -v modinfo >/dev/null 2>&1; then
+    modinfo -F vermagic "$module" 2>/dev/null
+  elif [ -x /usr/bin/kmod ]; then
+    /usr/bin/kmod modinfo -F vermagic "$module" 2>/dev/null
+  elif [ -x /bin/kmod ]; then
+    /bin/kmod modinfo -F vermagic "$module" 2>/dev/null
+  else
+    return 1
+  fi
+}
+
+validate_module_abi() {
+  files=$1
+  set -- "$files"/*.ko
+  [ -s "$1" ] || fail 'module archive contains no .ko files'
+  for module do
+    [ -s "$module" ] || continue
+    vermagic=$(module_vermagic "$module") || fail "cannot inspect kernel ABI of $(basename "$module"); refusing to install modules"
+    module_krel=${vermagic%% *}
+    [ "$module_krel" = "$KVER" ] || fail "$(basename "$module") ABI '$module_krel' does not match running '$KVER'; refusing to install or load this platform bundle"
+  done
+}
+
+write_active_state() {
+  manifest_tmp="$ACTIVE_MODULES.tmp.$$"
+  state_tmp="$ACTIVE_STATE.tmp.$$"
+  mkdir -p "$(dirname "$ACTIVE_STATE")"
+  : > "$manifest_tmp"
+  for module in "$tmp/modules"/*.ko; do
+    [ -s "$module" ] || continue
+    name=$(basename "$module")
+    hash=$(sha256sum "$MODULES/$name" | awk '{print $1}')
+    printf '%s  %s\n' "$hash" "$name" >> "$manifest_tmp"
+  done
+  {
+    printf 'platform=%s\n' "$TARGET_PLATFORM"
+    printf 'kernel=%s\n' "$TARGET_KERNEL"
+    printf 'release=%s\n' "$KVER"
+  } > "$state_tmp"
+  mv -f "$manifest_tmp" "$ACTIVE_MODULES"
+  mv -f "$state_tmp" "$ACTIVE_STATE"
+  chown root:root "$ACTIVE_MODULES" "$ACTIVE_STATE"
+  chmod 0644 "$ACTIVE_MODULES" "$ACTIVE_STATE"
+}
+
+active_state_matches_target() {
+  [ "$(sed -n 's/^platform=//p' "$ACTIVE_STATE" 2>/dev/null)" = "$TARGET_PLATFORM" ] &&
+  [ "$(sed -n 's/^kernel=//p' "$ACTIVE_STATE" 2>/dev/null)" = "$TARGET_KERNEL" ] &&
+  [ "$(sed -n 's/^release=//p' "$ACTIVE_STATE" 2>/dev/null)" = "$KVER" ]
+}
+
+active_modules_match_disk() {
+  [ -s "$ACTIVE_MODULES" ] || return 1
+  while read -r hash name; do
+    [ -n "$name" ] || continue
+    safe_module_name "$name" || return 1
+    [ -s "$MODULES/$name" ] || return 1
+    actual=$(sha256sum "$MODULES/$name" | awk '{print $1}')
+    [ "$actual" = "$hash" ] || return 1
+  done < "$ACTIVE_MODULES"
+}
+
+drm_modules_loaded() {
+  [ -d /sys/module/amdgpu ] || [ -d /sys/module/i915 ]
+}
+
+previous_owned_hash() {
+  [ -s "$PREVIOUS_MODULES" ] || return 1
+  awk -v name="$1" '$2 == name { print $1; found=1 } END { if (!found) exit 1 }' "$PREVIOUS_MODULES"
+}
+
+safe_module_name() {
+  case "$1" in
+    ''|*/*|*[!A-Za-z0-9_.+-]*) return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
+module_is_previous_package_owned() {
+  name=$1
+  safe_module_name "$name" || return 1
+  path=$MODULES/$name
+  [ -s "$path" ] || return 1
+  expected=$(previous_owned_hash "$name") || return 1
+  actual=$(sha256sum "$path" | awk '{print $1}')
+  [ "$actual" = "$expected" ]
+}
+
+backup_module_original() {
+  name=$1
+  safe_module_name "$name" || return 1
+  list=$BACKUP/modules.list
+  grep -q "^[PN] $name$" "$list" 2>/dev/null && return 0
+  mkdir -p "$BACKUP/modules"
+  if module_is_previous_package_owned "$name"; then
+    old_state=
+    if [ -f "$PREVIOUS_BACKUP/modules.list" ]; then
+      old_state=$(awk -v name="$name" '$2 == name { print $1; exit }' "$PREVIOUS_BACKUP/modules.list")
+    fi
+    case "$old_state" in
+      P)
+        if [ -s "$PREVIOUS_BACKUP/modules/$name" ]; then
+          cp -p "$PREVIOUS_BACKUP/modules/$name" "$BACKUP/modules/$name"
+          printf 'P %s\n' "$name" >> "$list"
+        else
+          printf 'N %s\n' "$name" >> "$list"
+        fi
+        ;;
+      N) printf 'N %s\n' "$name" >> "$list" ;;
+      *) printf 'N %s\n' "$name" >> "$list" ;;
+    esac
+  elif [ -e "$MODULES/$name" ]; then
+    cp -p "$MODULES/$name" "$BACKUP/modules/$name"
+    printf 'P %s\n' "$name" >> "$list"
+  else
+    printf 'N %s\n' "$name" >> "$list"
+  fi
+}
+
 install_assets() {
   need_root
   resolve_target
+  PREVIOUS_PLATFORM=$(sed -n 's/^platform=//p' "$ACTIVE_STATE" 2>/dev/null || true)
+  PREVIOUS_MODULES=$ACTIVE_MODULES
+  PREVIOUS_BACKUP=
+  [ -z "$PREVIOUS_PLATFORM" ] || PREVIOUS_BACKUP=/var/packages/syno-amdgpu-runtime/var/driver-backup/${PREVIOUS_PLATFORM}-${TARGET_DSM}
   [ -s "$PAYLOAD/drm-modules.tgz" ] || fail 'missing platform DRM payload'
   [ -s "$FIRMWARE_PAYLOAD/firmware-amdgpu.tgz" ] && [ -s "$FIRMWARE_PAYLOAD/firmware-i915.tgz" ] || fail 'missing shared firmware payload'
   (cd "$PAYLOAD" && sha256sum -c SHA256SUMS) || fail 'DRM payload checksum validation failed'
@@ -152,13 +284,28 @@ install_assets() {
   tar -xzf "$FIRMWARE_PAYLOAD/firmware-i915.tgz" -C "$tmp/fw-i915"
   set -- "$tmp/modules"/*.ko
   [ -f "$1" ] || fail 'module archive contains no .ko files'
+  [ -s "$tmp/modules/amdgpu.ko" ] && [ -s "$tmp/modules/i915.ko" ] || fail 'selected DRM bundle must contain both amdgpu.ko and i915.ko'
+  validate_module_abi "$tmp/modules"
+
+  : > "$tmp/stale-modules.list"
+  if [ -s "$PREVIOUS_MODULES" ]; then
+    while read -r _old_hash old_name; do
+      [ -n "$old_name" ] || continue
+      [ -e "$tmp/modules/$old_name" ] && continue
+      if module_is_previous_package_owned "$old_name"; then
+        printf '%s\n' "$old_name" >> "$tmp/stale-modules.list"
+      fi
+    done < "$PREVIOUS_MODULES"
+  fi
 
   # Build a standard temporary module tree. The source DSM uses a flat module
   # directory, so indexes are generated in the kernel-release layout and then
   # copied back flat. Nothing on the live system is changed until depmod exits.
   for f in "$MODULES"/*.ko; do
     [ -f "$f" ] || continue
-    ln -s "$f" "$tmp/root/lib/modules/$KVER/$(basename "$f")"
+    name=$(basename "$f")
+    grep -Fxq "$name" "$tmp/stale-modules.list" && continue
+    ln -s "$f" "$tmp/root/lib/modules/$KVER/$name"
   done
   for f in "$tmp/modules"/*.ko; do
     rm -f "$tmp/root/lib/modules/$KVER/$(basename "$f")"
@@ -168,18 +315,15 @@ install_assets() {
   /sbin/depmod -b "$tmp/root" "$KVER" || fail 'depmod failed; live modules were not changed'
 
   mkdir -p "$BACKUP/modules" "$BACKUP/firmware" "$BACKUP/indexes"
-  if [ ! -f "$BACKUP/modules.list" ]; then
-    : > "$BACKUP/modules.list"
-    for f in "$tmp/modules"/*.ko; do
-      name=$(basename "$f")
-      if [ -e "$MODULES/$name" ]; then
-        printf 'P %s\n' "$name" >> "$BACKUP/modules.list"
-        cp -p "$MODULES/$name" "$BACKUP/modules/$name"
-      else
-        printf 'N %s\n' "$name" >> "$BACKUP/modules.list"
-      fi
-    done
-  fi
+  [ -f "$BACKUP/modules.list" ] || : > "$BACKUP/modules.list"
+  for f in "$tmp/modules"/*.ko; do
+    [ -s "$f" ] || continue
+    backup_module_original "$(basename "$f")"
+  done
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    backup_module_original "$name"
+  done < "$tmp/stale-modules.list"
   if [ ! -f "$BACKUP/indexes.list" ]; then
     : > "$BACKUP/indexes.list"
     for f in "$MODULES"/modules.*; do
@@ -194,7 +338,6 @@ install_assets() {
     for root in "$tmp/fw-amd" "$tmp/fw-i915"; do
       (cd "$root" && find . -type f -print) | while IFS= read -r rel; do
         rel=${rel#./}
-        src=$root/$rel
         dst=$FIRMWARE/$rel
         if [ -e "$dst" ]; then
           printf 'P %s\n' "$rel" >> "$BACKUP/firmware.list"
@@ -207,6 +350,12 @@ install_assets() {
     done
   fi
 
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    if module_is_previous_package_owned "$name"; then
+      rm -f "$MODULES/$name"
+    fi
+  done < "$tmp/stale-modules.list"
   for f in "$tmp/modules"/*.ko; do cp -p "$f" "$MODULES/$(basename "$f")"; done
   for f in "$tmp/root/lib/modules/$KVER"/modules.*; do
     [ -f "$f" ] || continue
@@ -220,7 +369,63 @@ install_assets() {
     done
   done
   install_kernel4_autoload
+  write_active_state
   echo 'AMDGPU and combined DRM modules plus AMD/i915 firmware installed. Reboot DSM once before validating GPU status or hardware transcoding.'
+}
+
+reconcile_assets() {
+  need_root
+  resolve_target
+  boot_id=$(cat /proc/sys/kernel/random/boot_id 2>/dev/null || true)
+  if [ -s "$REBOOT_PENDING" ]; then
+    pending_boot=$(cat "$REBOOT_PENDING" 2>/dev/null || true)
+    if [ -n "$boot_id" ] && [ "$pending_boot" = "$boot_id" ] &&
+       active_state_matches_target && active_modules_match_disk; then
+      echo "AMDGPU runtime: platform migration is staged for $TARGET_PLATFORM; reboot DSM to activate it." >&2
+      return 0
+    fi
+    rm -f "$REBOOT_PENDING"
+  fi
+  if active_state_matches_target && active_modules_match_disk; then
+    if [ -d /sys/module/amdgpu ] || [ -d /sys/module/i915 ]; then
+      echo "AMDGPU runtime: validated module bundle already matches $TARGET_PLATFORM/$KVER; loaded DRM modules left untouched."
+      return 0
+    fi
+    load_assets
+    return $?
+  fi
+
+  old_platform=$(sed -n 's/^platform=//p' "$ACTIVE_STATE" 2>/dev/null || true)
+  old_kernel=$(sed -n 's/^kernel=//p' "$ACTIVE_STATE" 2>/dev/null || true)
+  echo "AMDGPU runtime: platform/kernel change detected (${old_platform:-unknown}/${old_kernel:-unknown} -> $TARGET_PLATFORM/$KVER_NUM); validating and staging the matching bundled DRM set."
+  install_assets
+  if drm_modules_loaded; then
+    printf '%s\n' "${boot_id:-unknown}" > "$REBOOT_PENDING"
+    echo "AMDGPU runtime: validated modules for $TARGET_PLATFORM are staged, but AMD/i915 DRM modules are already loaded; reboot DSM to activate the selected set." >&2
+    return 0
+  fi
+  load_assets
+}
+
+load_assets() {
+  need_root
+  resolve_target
+  if ! active_state_matches_target || ! active_modules_match_disk; then
+    fail 'active module manifest does not match the current platform/kernel; run reconcile or reinstall before loading'
+  fi
+  if [ -d /sys/module/amdgpu ]; then
+    if [ "$TARGET_KERNEL" = kernel4.4.x ] && [ "$(cat /sys/module/amdgpu/parameters/exp_hw_support 2>/dev/null || true)" != 1 ]; then
+      fail 'AMDGPU is already loaded without exp_hw_support=1; unload it safely or reboot to apply the experimental K4 option'
+    fi
+  else
+    case "$TARGET_KERNEL" in
+      kernel4.4.x) /sbin/modprobe amdgpu exp_hw_support=1 ;;
+      kernel5.10.55) /sbin/modprobe amdgpu ;;
+    esac || { echo 'AMDGPU module could not be loaded; inspect dmesg.' >&2; exit 1; }
+  fi
+  if [ "$TARGET_KERNEL" = kernel4.4.x ]; then
+    /sbin/modprobe i915 || { echo 'i915 module could not be loaded; inspect dmesg.' >&2; exit 1; }
+  fi
 }
 
 restore_assets() {
@@ -262,28 +467,14 @@ restore_assets() {
     rm -f "$DEPMOD_LINK_MARKER"
   fi
   remove_kernel4_autoload
+  rm -f "$ACTIVE_STATE" "$ACTIVE_MODULES" "$REBOOT_PENDING"
   echo 'Original module, index, and firmware files restored. Reboot to unload any active AMDGPU module.'
 }
 
 case "${1:-}" in
   install) install_assets ;;
+  reconcile) reconcile_assets ;;
   restore) restore_assets ;;
-  load)
-    need_root
-    resolve_target
-    if [ -d /sys/module/amdgpu ]; then
-      if [ "$TARGET_KERNEL" = kernel4.4.x ] && [ "$(cat /sys/module/amdgpu/parameters/exp_hw_support 2>/dev/null || true)" != 1 ]; then
-        fail 'AMDGPU is already loaded without exp_hw_support=1; unload it safely or reboot to apply the experimental K4 option'
-      fi
-    else
-      case "$TARGET_KERNEL" in
-        kernel4.4.x) /sbin/modprobe amdgpu exp_hw_support=1 ;;
-        kernel5.10.55) /sbin/modprobe amdgpu ;;
-      esac || { echo 'AMDGPU module could not be loaded; inspect dmesg.' >&2; exit 1; }
-    fi
-    if [ "$TARGET_KERNEL" = kernel4.4.x ]; then
-      /sbin/modprobe i915 || { echo 'i915 module could not be loaded; inspect dmesg.' >&2; exit 1; }
-    fi
-    ;;
-  *) fail 'usage: amdgpu-driver-assets {install|restore|load}' ;;
+  load) load_assets ;;
+  *) fail 'usage: amdgpu-driver-assets {install|reconcile|restore|load}' ;;
 esac

@@ -67,7 +67,7 @@ echo "Notice: kernel 4.4 VA-API is experimental; Jellyfin/Plex integration is no
 "$RUNTIME/bin/helper/amdgpu-plex-restore-helper" || echo "Warning: Plex legacy wrapper was not restored automatically." >&2
 EOF
     chmod 0755 "$ASSEMBLY/scripts/postinst"
-    sed -i -E 's#^description=".*"$#description="AMD+i915 Dual DRM and Runtime (DSM 7.4, kernel 4.4.302; AMD VA-API/Vulkan, experimental). Bundled platforms: apollolake broadwell broadwellnk broadwellnkv2 broadwellntbap denverton geminilake purley r1000 v1000. Reboot after installation; no Jellyfin/Plex auto-integration."#' "$ASSEMBLY/INFO"
+    sed -i -E 's#^description=".*"$#description="Platform-migration-capable AMD+i915 Dual DRM and Runtime (DSM 7.4, kernel 4.4.302; AMD VA-API/Vulkan, experimental). Bundled platforms: apollolake broadwell broadwellnk broadwellnkv2 broadwellntbap denverton geminilake purley r1000 v1000. Detects platform/kernel changes, validates the selected module ABI, and stages the matching DRM bundle; reboot when DRM modules are already loaded. No Jellyfin/Plex auto-integration."#' "$ASSEMBLY/INFO"
     ;;
 esac
 for icon in PACKAGE_ICON.PNG PACKAGE_ICON_256.PNG; do
